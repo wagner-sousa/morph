@@ -51,4 +51,29 @@ describe('config loader', () => {
   it('throws on invalid JSON', () => {
     expect(() => parseConfig('{ not json')).toThrowError(ConfigError);
   });
+
+  it('does not require env vars for disabled MCP servers', () => {
+    const json = JSON.stringify({
+      mcpServers: [
+        {
+          name: 'off',
+          enabled: false,
+          transport: { type: 'stdio', command: 'npx', args: ['--key=${MISSING_SECRET}'] },
+        },
+      ],
+    });
+    const cfg = parseConfig(json, { env: {} });
+    const t = cfg.mcpServers[0].transport;
+    // placeholder is left intact rather than blocking startup
+    expect(t.type === 'stdio' && t.args).toContain('--key=${MISSING_SECRET}');
+  });
+
+  it('still requires env vars for enabled MCP servers', () => {
+    const json = JSON.stringify({
+      mcpServers: [
+        { name: 'on', enabled: true, transport: { type: 'stdio', command: '${MISSING_CMD}' } },
+      ],
+    });
+    expect(() => parseConfig(json, { env: {} })).toThrow(/MISSING_CMD/);
+  });
 });
