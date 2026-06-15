@@ -65,8 +65,8 @@ export function decideConvert(
   if (parsed === null || typeof parsed !== 'object') {
     return { convert: false, reason: 'not an object or array' };
   }
-  // Deeply nested (>=4 levels) — minimal TOON benefit, skip to avoid overhead.
-  if (maxDepth(parsed) >= 4) {
+  // Deeply nested (>=6 levels in our maxDepth, ~4 structural levels) — minimal TOON benefit.
+  if (maxDepth(parsed) >= 6) {
     return { convert: false, reason: 'deeply nested, TOON benefit minimal' };
   }
   // Uniform arrays get the highest benefit.
