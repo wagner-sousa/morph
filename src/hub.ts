@@ -198,6 +198,13 @@ export class Hub extends EventEmitter {
     await this.applyConfig(cfg);
   }
 
+  /** Persist current config to disk (preserves $schema if present). */
+  async saveConfig(): Promise<void> {
+    const { saveConfig: persist } = await import('./config/loader.js');
+    const schemaRef = (this.config as Record<string, unknown>).$schema as string | undefined;
+    await persist(this.configPath, this.config, schemaRef);
+  }
+
   /** Diff old vs new config and apply changes without a full restart. */
   async applyConfig(next: MorphConfig): Promise<void> {
     const prev = this.config;
