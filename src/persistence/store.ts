@@ -1,0 +1,142 @@
+/**
+ * IMPL: SQLite-backed durable store for logs and call stats (better-sqlite3).
+ *
+ * Synchronous by nature; methods are exposed as async to keep a stable
+ * contract and allow a future swap of backend.
+ */
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import Database from 'better-sqlite3';
+import type { LogEntry, LogFilter } from '../logging/store.js';
+
+export interface PersistedStats {
+  totalCalls: number;
+  totalTokensSaved: number;
+  totalDurationMs: number;
+}
+
+export class Store {
+  private readonly db: Database.Database;
+
+  constructor(filePath: string) {
+    mkdirSync(dirname(filePath), { recursive: true });
+    this.db = new Database(filePath);
+    this.db.pragma('journal_mode = WAL');
+    this.migrate();
+  }
+
+  private migrate(): void {
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        mcp_name TEXT NOT NULL,
+        tool_name TEXT NOT NULL,
+        level TEXT NOT NULL DEFAULT 'info',
+        message TEXT NOT NULL,
+        duration_ms INTEGER,
+        tokens_saved INTEGER,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_logs_created ON logs(created_at);
+      CREATE INDEX IF NOT EXISTS idx_logs_mcp ON logs(mcp_name);
+
+      CREATE TABLE IF NOT EXISTS calls (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        mcp_name TEXT NOT NULL,
+        tool_name TEXT NOT NULL,
+        duration_ms INTEGER NOT NULL DEFAULT 0,
+        tokens_saved INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_calls_created ON calls(created_at);
+    `);
+  }
+
+  appendLog(entry: Pick<LogEntry, 'mcpName' | 'toolName' | 'level' | 'message'> & Partial<LogEntry>): void {
+    this.db
+      .prepare(
+        `INSERT INTO logs (mcp_name, tool_name, level, message, duration_ms, tokens_saved, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`,
+      )
+      .run(
+        entry.mcpName,
+        entry.toolName,
+        entry.level,
+        entry.message,
+        entry.durationMs ?? null,
+        entry.tokensSaved ?? null,
+        entry.createdAt ?? null,
+      );
+  }
+
+  queryLogs(filter: LogFilter = {}): LogEntry[] {
+    const clauses: string[] = [];
+    const params: unknown[] = [];
+    if (filter.mcp) {
+      clauses.push('mcp_name = ?');
+      params.push(filter.mcp);
+    }
+    if (filter.level) {
+      clauses.push('level = ?');
+      params.push(filter.level);
+    }
+    if (filter.since) {
+      clauses.push('created_at >= ?');
+      params.push(filter.since);
+    }
+    const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+    const limit = filter.limit ?? 200;
+    const rows = this.db
+      .prepare(`SELECT * FROM logs ${where} ORDER BY id DESC LIMIT ?`)
+      .all(...params, limit) as Array<Record<string, unknown>>;
+    return rows.map((r) => ({
+      id: r.id as number,
+      mcpName: r.mcp_name as string,
+      toolName: r.tool_name as string,
+      level: r.level as LogEntry['level'],
+      message: r.message as string,
+      durationMs: (r.duration_ms as number) ?? undefined,
+      tokensSaved: (r.tokens_saved as number) ?? undefined,
+      createdAt: r.created_at as string,
+    }));
+  }
+
+  recordCall(mcpName: string, toolName: string, durationMs: number, tokensSaved: number): void {
+    this.db
+      .prepare(
+        `INSERT INTO calls (mcp_name, tool_name, duration_ms, tokens_saved) VALUES (?, ?, ?, ?)`,
+      )
+      .run(mcpName, toolName, durationMs, tokensSaved);
+  }
+
+  getStats(since?: string): PersistedStats {
+    const where = since ? 'WHERE created_at >= ?' : '';
+    const params = since ? [since] : [];
+    const row = this.db
+      .prepare(
+        `SELECT COUNT(*) AS totalCalls,
+                COALESCE(SUM(tokens_saved), 0) AS totalTokensSaved,
+                COALESCE(SUM(duration_ms), 0) AS totalDurationMs
+         FROM calls ${where}`,
+      )
+      .get(...params) as PersistedStats;
+    return row;
+  }
+
+  /** Time-series savings, bucketed per hour, for the stats charts. */
+  getSavingsHistory(since: string): Array<{ bucket: string; tokensSaved: number; calls: number }> {
+    return this.db
+      .prepare(
+        `SELECT strftime('%Y-%m-%dT%H:00:00Z', created_at) AS bucket,
+                COALESCE(SUM(tokens_saved), 0) AS tokensSaved,
+                COUNT(*) AS calls
+         FROM calls WHERE created_at >= ?
+         GROUP BY bucket ORDER BY bucket`,
+      )
+      .all(since) as Array<{ bucket: string; tokensSaved: number; calls: number }>;
+  }
+
+  close(): void {
+    this.db.close();
+  }
+}
