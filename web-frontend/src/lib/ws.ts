@@ -7,7 +7,6 @@ export interface WsMessage {
   timestamp: string;
 }
 
-/** Subscribe to MORPH's realtime WebSocket with auto-reconnect. */
 export function useWebSocket(onMessage: (msg: WsMessage) => void): boolean {
   const [connected, setConnected] = useState(false);
   const handlerRef = useRef(onMessage);

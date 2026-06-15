@@ -1,117 +1,97 @@
-import { useCallback, useEffect, useState } from 'react';
-import { api, type LogEntry, type MCPStatus, type Stats } from './api.ts';
-import { useWebSocket, type WsMessage } from './useWebSocket.ts';
+import {
+  Outlet,
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter,
+} from '@tanstack/react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Sidebar } from './components/Sidebar';
+import { Dashboard } from './pages/Dashboard';
+import { Mcps } from './pages/Mcps';
+import { MCPDetail } from './pages/MCPDetail';
+import { Logs } from './pages/Logs';
+import { Stats } from './pages/Stats';
+import { Settings } from './pages/Settings';
 
-const statusDot = (s: string) =>
-  s === 'connected' ? '🟢' : s === 'connecting' ? '🟡' : s === 'disabled' ? '⚪' : '🔴';
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: 1, staleTime: 2000 },
+  },
+});
 
-export function App() {
-  const [mcps, setMcps] = useState<MCPStatus[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [version, setVersion] = useState('');
-
-  const refresh = useCallback(async () => {
-    try {
-      const [m, s, l, v] = await Promise.all([
-        api.mcps(),
-        api.stats(),
-        api.logs(),
-        api.version(),
-      ]);
-      setMcps(m);
-      setStats(s);
-      setLogs(l);
-      setVersion(v.version);
-    } catch {
-      /* backend not ready */
-    }
-  }, []);
-
-  useEffect(() => {
-    void refresh();
-    const t = setInterval(refresh, 5000);
-    return () => clearInterval(t);
-  }, [refresh]);
-
-  const onWs = useCallback((msg: WsMessage) => {
-    if (msg.channel === 'stats') setStats(msg.data as Stats);
-    if (msg.channel === 'logs') setLogs((prev) => [msg.data as LogEntry, ...prev].slice(0, 50));
-    if (msg.channel === 'health') void refresh();
-  }, [refresh]);
-
-  const live = useWebSocket(onWs);
-
-  const online = mcps.filter((m) => m.status === 'connected').length;
-  const tools = mcps.reduce((n, m) => n + m.toolCount, 0);
-
+function Layout() {
   return (
-    <div className="app">
-      <header>
-        <h1>MORPH ◆ Studio</h1>
-        <span className="meta">
-          v{version} · {live ? '🟢 live' : '🔴 offline'}
-        </span>
-      </header>
-
-      <section className="cards">
-        <Card label="MCPs" value={`${online}/${mcps.length} online`} />
-        <Card label="Tools" value={String(tools)} />
-        <Card label="Calls" value={String(stats?.totalCalls ?? 0)} />
-        <Card
-          label="Tokens Saved"
-          value={`${(stats?.totalTokensSaved ?? 0).toLocaleString()} 🎯`}
-          sub={stats ? `avg ${stats.avgSavingsPercent}%` : undefined}
-        />
-      </section>
-
-      <section className="panel">
-        <h2>MCP Status</h2>
-        <table>
-          <tbody>
-            {mcps.map((m) => (
-              <tr key={m.name}>
-                <td>{statusDot(m.status)} {m.name}</td>
-                <td>{m.transport}</td>
-                <td>{m.toolCount} tools</td>
-                <td>{m.latencyMs != null ? `${m.latencyMs}ms` : '—'}</td>
-                <td>
-                  <button onClick={() => void api.restart(m.name).then(refresh)}>restart</button>
-                </td>
-              </tr>
-            ))}
-            {mcps.length === 0 && <tr><td>No MCP servers configured.</td></tr>}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="panel">
-        <h2>Recent Calls</h2>
-        <table>
-          <tbody>
-            {logs.map((l) => (
-              <tr key={l.id}>
-                <td>{new Date(l.createdAt).toLocaleTimeString()}</td>
-                <td>{l.toolName}</td>
-                <td>{l.level === 'error' ? '❌' : '✅'}</td>
-                <td>{l.durationMs ?? 0}ms</td>
-                <td>{l.tokensSaved ? `${l.tokensSaved} tok` : '—'}</td>
-              </tr>
-            ))}
-            {logs.length === 0 && <tr><td>No calls yet.</td></tr>}
-          </tbody>
-        </table>
-      </section>
+    <div className="min-h-screen bg-morph-bg text-morph-text">
+      <Sidebar />
+      <main className="ml-56 p-6">
+        <Outlet />
+      </main>
     </div>
   );
 }
 
-function Card({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="card">
-      <div className="card-label">{label}</div>
-      <div className="card-value">{value}</div>
-      {sub && <div className="card-sub">{sub}</div>}
-    </div>
-  );
+const rootRoute = createRootRoute({
+  component: () => (
+    <QueryClientProvider client={queryClient}>
+      <Layout />
+    </QueryClientProvider>
+  ),
+});
+
+const dashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  component: Dashboard,
+});
+
+const mcpsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/mcps',
+  component: Mcps,
+});
+
+const mcpDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/mcps/$name',
+  component: MCPDetail,
+});
+
+const logsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/logs',
+  component: Logs,
+});
+
+const statsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/stats',
+  component: Stats,
+});
+
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/settings',
+  component: Settings,
+});
+
+const routeTree = rootRoute.addChildren([
+  dashboardRoute,
+  mcpsRoute,
+  mcpDetailRoute,
+  logsRoute,
+  statsRoute,
+  settingsRoute,
+]);
+
+const router = createRouter({ routeTree });
+
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router;
+  }
+}
+
+export function App() {
+  return <RouterProvider router={router} />;
 }
