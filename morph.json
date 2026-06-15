@@ -1,0 +1,62 @@
+{
+  "$schema": "./schema.json",
+  "morph": {
+    "version": "1.0",
+    "logLevel": "info"
+  },
+  "mcpServers": [
+    {
+      "name": "filesystem",
+      "enabled": true,
+      "description": "Access to local file system",
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/data"]
+      }
+    },
+    {
+      "name": "clickup",
+      "enabled": false,
+      "description": "ClickUp task management",
+      "labels": {
+        "team": "engineering",
+        "type": "project-management"
+      },
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@anthropic/mcp-clickup", "--api-key=${CLICKUP_API_KEY}"]
+      }
+    },
+    {
+      "name": "brightdata",
+      "enabled": false,
+      "description": "Bright Data web scraping (remote HTTP)",
+      "transport": {
+        "type": "http",
+        "url": "https://api.brightdata.com/mcp",
+        "headers": {
+          "Authorization": "Bearer ${BRIGHTDATA_API_KEY}"
+        }
+      }
+    }
+  ],
+  "toon": {
+    "autoConvert": true,
+    "delimiter": "comma",
+    "indent": 2,
+    "flattenDepth": 4,
+    "threshold": 100
+  },
+  "webUi": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 3100
+  },
+  "health": {
+    "intervalMs": 30000,
+    "timeoutMs": 5000,
+    "maxRetries": 3
+  }
+}
