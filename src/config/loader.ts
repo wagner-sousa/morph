@@ -34,6 +34,23 @@ export function validateConfig(raw: unknown): MorphConfig {
   return result.data;
 }
 
+/**
+ * Resolve ${ENV_VAR} references across the config. Missing variables are only
+ * fatal for the global config and for *enabled* MCP servers — placeholders
+ * inside disabled servers are left intact so they never block startup.
+ */
+function resolveConfigEnv(raw: unknown, env?: NodeJS.ProcessEnv): unknown {
+  if (raw && typeof raw === 'object' && Array.isArray((raw as { mcpServers?: unknown }).mcpServers)) {
+    const obj = raw as Record<string, unknown> & { mcpServers: Array<Record<string, unknown>> };
+    const servers = obj.mcpServers.map((server) =>
+      resolveEnvVars(server, { env, strict: server?.enabled !== false }),
+    );
+    const rest = resolveEnvVars({ ...obj, mcpServers: [] }, { env, strict: true });
+    return { ...rest, mcpServers: servers };
+  }
+  return resolveEnvVars(raw, { env });
+}
+
 /** Parse a JSON string into a validated config (env already resolved or not). */
 export function parseConfig(jsonText: string, options: LoadOptions = {}): MorphConfig {
   let parsed: unknown;
@@ -44,7 +61,7 @@ export function parseConfig(jsonText: string, options: LoadOptions = {}): MorphC
   }
 
   const resolved =
-    options.resolveEnv === false ? parsed : resolveEnvVars(parsed, { env: options.env });
+    options.resolveEnv === false ? parsed : resolveConfigEnv(parsed, options.env);
 
   return validateConfig(resolved);
 }

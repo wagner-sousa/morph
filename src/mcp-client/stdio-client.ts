@@ -23,7 +23,7 @@ export class StdioMCPClient extends BaseMCPClient {
       // Child inherits MORPH's env plus any per-server overrides.
       env: { ...filterEnv(process.env), ...(this.config.env ?? {}) },
       cwd: this.config.cwd,
-      stderr: 'pipe',
+      stderr: 'inherit',
     });
   }
 }
