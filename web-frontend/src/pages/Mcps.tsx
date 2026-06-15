@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { type MCPConfig } from '../lib/api';
 import { useAddMcp, useDeleteMcp, useMcps } from '../hooks/useMcps';
@@ -11,14 +11,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select } from '../components/ui/select';
 import { Switch } from '../components/ui/switch';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 const mcpSchema = z.object({
@@ -57,6 +56,7 @@ function MCPFormDialog({
     handleSubmit,
     watch,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<MCPForm>({
     resolver: zodResolver(mcpSchema),
@@ -64,6 +64,10 @@ function MCPFormDialog({
   });
 
   const transport = watch('transport');
+
+  useEffect(() => {
+    if (open) reset(initial ?? defaultValues);
+  }, [open, initial, reset]);
 
   const handleFormSubmit = async (data: MCPForm) => {
     await onSubmit(data);
@@ -120,7 +124,17 @@ function MCPFormDialog({
               </div>
             )}
             <div className="flex items-center gap-2">
-              <Switch id="enabled" {...register('enabled')} />
+              <Controller
+                name="enabled"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    id="enabled"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
               <Label htmlFor="enabled">Enabled</Label>
             </div>
           </div>
@@ -167,12 +181,10 @@ export function Mcps() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">MCP Servers</h1>
-        <DialogTrigger asChild>
           <Button onClick={() => setDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             Add MCP
           </Button>
-        </DialogTrigger>
       </div>
 
       <MCPFormDialog open={dialogOpen} onOpenChange={setDialogOpen} onSubmit={handleAdd} />
