@@ -170,18 +170,29 @@ MORPH is an MCP server that proxies to other MCP servers. It:
 
 ## Development
 
+Everything runs in Docker — no local Node toolchain required.
+
 ```bash
-# Clone and install
-git clone https://github.com/your-org/morph.git
-cd morph
-npm install
+# Dev stack: MORPH API (:3100, hot reload) + Morph Studio (:5173)
+docker compose -f docker-compose.dev.yml up
 
-# Run in dev mode (hot reload)
-npm run dev -- --config ./morph.json
+# Install + run the test suite (28 unit + integration tests)
+docker run --rm -v "$PWD":/app -w /app node:22 sh -c "npm install && npm test"
 
-# Run tests
-npm test
+# Typecheck / build / regenerate schema.json
+docker run --rm -v "$PWD":/app -w /app node:22 sh -c "npm install && npm run build"
+docker run --rm -v "$PWD":/app -w /app node:22 sh -c "npm install && npm run gen:schema"
 ```
+
+The project follows **Specification-Driven Development (SDD)**: each module is
+`types.ts`/`schema.ts` (spec) → `*.test.ts` (test) → `*.ts` (impl). See
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+## Documentation
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — components, layers, data flow
+- [docs/CONFIGURATION.md](docs/CONFIGURATION.md) — every `morph.json` field
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — SDD workflow, layout, testing
 
 ## License
 
