@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: morph:latest
+    image: morph:2.0.0
     ports:
       - "3101:3100"
     volumes:
