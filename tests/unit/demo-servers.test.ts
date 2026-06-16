@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import http from 'node:http';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const distDir = join(__dirname, '../../dist/examples');
+const srcDir = join(__dirname, '../../src/examples');
+const tsxBin = join(__dirname, '../../node_modules/.bin/tsx');
 
 function jsonRpcRequest(method: string, params?: unknown, id = 1) {
   return JSON.stringify({ jsonrpc: '2.0', id, method, params });
@@ -71,7 +72,7 @@ async function sseSession(url: string): Promise<{ sessionId: string; close: () =
 }
 
 function spawnStdio(script: string, args: string[] = [], env?: Record<string, string>): ChildProcess {
-  const proc = spawn('node', [join(distDir, script), ...args], {
+  const proc = spawn(tsxBin, [join(srcDir, script), ...args], {
     stdio: ['pipe', 'pipe', 'pipe'],
     env: { ...process.env, ...env },
   });
