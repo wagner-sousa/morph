@@ -10,7 +10,7 @@
  *   Small (<threshold)        →  Minimal         → Skip
  *   Non-uniform / mixed       → 15–30% savings  → Convert
  */
-import type { ToonOptions } from '../config/types.js';
+import type { ToonOptions } from "../config/types.js";
 
 export interface OptimizerDecision {
   convert: boolean;
@@ -23,9 +23,10 @@ export function maxDepth(value: unknown, current = 1): number {
     for (const item of value) max = Math.max(max, maxDepth(item, current + 1));
     return max;
   }
-  if (value !== null && typeof value === 'object') {
+  if (value !== null && typeof value === "object") {
     let max = current;
-    for (const v of Object.values(value)) max = Math.max(max, maxDepth(v, current + 1));
+    for (const v of Object.values(value))
+      max = Math.max(max, maxDepth(v, current + 1));
     return max;
   }
   return current;
@@ -41,7 +42,11 @@ export function isUniformArray(value: unknown): boolean {
   if (firstKeys === null) return false;
   for (let i = 1; i < value.length; i++) {
     const k = keysOf(value[i]);
-    if (k === null || k.length !== firstKeys.length || !k.every((key) => firstKeys.includes(key))) {
+    if (
+      k === null ||
+      k.length !== firstKeys.length ||
+      !k.every((key) => firstKeys.includes(key))
+    ) {
       return false;
     }
   }
@@ -49,7 +54,7 @@ export function isUniformArray(value: unknown): boolean {
 }
 
 function keysOf(v: unknown): string[] | null {
-  if (v === null || typeof v !== 'object' || Array.isArray(v)) return null;
+  if (v === null || typeof v !== "object" || Array.isArray(v)) return null;
   return Object.keys(v).sort();
 }
 
@@ -59,20 +64,20 @@ export function decideConvert(
   options: ToonOptions,
 ): OptimizerDecision {
   if (rawText.length < options.threshold) {
-    return { convert: false, reason: 'below size threshold' };
+    return { convert: false, reason: "below size threshold" };
   }
   // Primitive scalars never benefit.
-  if (parsed === null || typeof parsed !== 'object') {
-    return { convert: false, reason: 'not an object or array' };
+  if (parsed === null || typeof parsed !== "object") {
+    return { convert: false, reason: "not an object or array" };
   }
   // Deeply nested (>=6 levels in our maxDepth, ~4 structural levels) — minimal TOON benefit.
   if (maxDepth(parsed) >= 6) {
-    return { convert: false, reason: 'deeply nested, TOON benefit minimal' };
+    return { convert: false, reason: "deeply nested, TOON benefit minimal" };
   }
   // Uniform arrays get the highest benefit.
   if (isUniformArray(parsed)) {
-    return { convert: true, reason: 'uniform array — high TOON benefit' };
+    return { convert: true, reason: "uniform array — high TOON benefit" };
   }
   // Fall through to convert — non-uniform / mixed still benefit.
-  return { convert: true, reason: 'eligible' };
+  return { convert: true, reason: "eligible" };
 }

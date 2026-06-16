@@ -20,6 +20,14 @@ RUN npm prune --omit=dev
 # Stage 3: runtime
 FROM node:22-bookworm-slim AS runtime
 
+# VERSION is injected by CI from the release tag (defaults to "dev" for local builds).
+# In CI, docker/metadata-action also adds the standard OCI labels automatically.
+ARG VERSION=dev
+LABEL org.opencontainers.image.title="morph" \
+      org.opencontainers.image.description="MORPH — MCP Optimized Response Protocol Handler" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.source="https://github.com/wagner-sousa/morph"
+
 # System deps commonly required by backend MCP servers (python, git, npx).
 RUN apt-get update && \
     apt-get install -y --no-install-recommends python3 git ca-certificates && \

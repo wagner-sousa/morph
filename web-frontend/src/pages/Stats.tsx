@@ -1,15 +1,14 @@
-import { useStats } from '../hooks/useStats';
-import { TOONStats } from '../components/TOONStats';
+import { useStats } from "../hooks/useStats";
+import { TOONStats } from "../components/TOONStats";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import {
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 
-const COLORS = ['#5eead4', '#14b8a6', '#0d9488', '#2dd4bf', '#5eead4'];
+const COLORS = ["#5eead4", "#14b8a6", "#0d9488", "#2dd4bf", "#5eead4"];
 
 export function Stats() {
   const { data: stats, isLoading } = useStats();
@@ -47,7 +46,7 @@ export function Stats() {
                     outerRadius={80}
                     dataKey="value"
                     label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(0)}%`
+                      `${String(name)} ${((percent ?? 0) * 100).toFixed(0)}%`
                     }
                   >
                     {pieData.map((_, i) => (
@@ -56,9 +55,9 @@ export function Stats() {
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      background: '#161b22',
-                      border: '1px solid #2a2f3a',
-                      borderRadius: '8px',
+                      background: "#161b22",
+                      border: "1px solid #2a2f3a",
+                      borderRadius: "8px",
                     }}
                   />
                 </PieChart>
@@ -89,7 +88,7 @@ export function Stats() {
               <span>
                 {stats.totalCalls > 0
                   ? `${((1 - stats.failedCalls / stats.totalCalls) * 100).toFixed(1)}%`
-                  : '—'}
+                  : "—"}
               </span>
             </div>
             <div className="flex justify-between">

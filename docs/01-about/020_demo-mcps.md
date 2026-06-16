@@ -4,13 +4,13 @@ MORPH ships with **5 demo MCP servers** covering every supported transport. They
 
 ## Server Overview
 
-| Server | Transport | Port | Config Name | Description |
-|--------|-----------|------|-------------|-------------|
-| `demo-stdio` | STDIO | — | `demo-stdio` | Basic tools via child process stdin/stdout |
-| `demo-http` | HTTP (Streamable) | `3200` | `demo-http` | Same tools over HTTP, no auth |
-| `demo-http-oauth` | HTTP with OAuth | `3202` | `demo-http-oauth` | HTTP with OAuth 2.0 / PKCE challenge |
-| `demo-sse` | SSE | `3201` | `demo-sse` | Legacy Server-Sent Events transport |
-| `demo-stdio-params` | STDIO | — | `demo-stdio-params` | Parameterized file-system tools with env config |
+| Server              | Transport         | Port   | Config Name         | Description                                     |
+| ------------------- | ----------------- | ------ | ------------------- | ----------------------------------------------- |
+| `demo-stdio`        | STDIO             | —      | `demo-stdio`        | Basic tools via child process stdin/stdout      |
+| `demo-http`         | HTTP (Streamable) | `3200` | `demo-http`         | Same tools over HTTP, no auth                   |
+| `demo-http-oauth`   | HTTP with OAuth   | `3202` | `demo-http-oauth`   | HTTP with OAuth 2.0 / PKCE challenge            |
+| `demo-sse`          | SSE               | `3201` | `demo-sse`          | Legacy Server-Sent Events transport             |
+| `demo-stdio-params` | STDIO             | —      | `demo-stdio-params` | Parameterized file-system tools with env config |
 
 ## Starting the Servers
 
@@ -38,33 +38,33 @@ The servers are pre-configured in `morph.json` so they connect automatically whe
 
 These three servers expose the same basic tools:
 
-| Tool | Description | Input |
-|------|-------------|-------|
-| `ping` | Health check — returns `"pong"` | None |
+| Tool    | Description                                                    | Input                                 |
+| ------- | -------------------------------------------------------------- | ------------------------------------- |
+| `ping`  | Health check — returns `"pong"`                                | None                                  |
 | `users` | Returns a uniform array of user objects (ideal TOON candidate) | `count` (number, default 25, max 500) |
-| `echo` | Echoes back the provided arguments | Any JSON |
+| `echo`  | Echoes back the provided arguments                             | Any JSON                              |
 
 ### `demo-http-oauth`
 
 Same as above plus two extra tools:
 
-| Tool | Description | Input |
-|------|-------------|-------|
-| `ping` | Health check — returns `"pong"` | None |
-| `echo` | Echoes back provided arguments | Any JSON |
-| `time` | Returns the current server time as ISO string | None |
-| `whoami` | Returns authenticated client information | None |
+| Tool     | Description                                   | Input    |
+| -------- | --------------------------------------------- | -------- |
+| `ping`   | Health check — returns `"pong"`               | None     |
+| `echo`   | Echoes back provided arguments                | Any JSON |
+| `time`   | Returns the current server time as ISO string | None     |
+| `whoami` | Returns authenticated client information      | None     |
 
 ### `demo-stdio-params`
 
 Parameterized file-system tools operating on `/tmp/demo`:
 
-| Tool | Description | Input Parameters |
-|------|-------------|------------------|
-| `read` | Read file contents | `path` (required), `encoding`, `maxSize` |
-| `write` | Write content to a file | `path` (required), `content` (required), `append` |
-| `list` | List directory contents | `dir` (required), `pattern`, `recursive` |
-| `stats` | Get file or directory metadata | `path` (required) |
+| Tool    | Description                    | Input Parameters                                  |
+| ------- | ------------------------------ | ------------------------------------------------- |
+| `read`  | Read file contents             | `path` (required), `encoding`, `maxSize`          |
+| `write` | Write content to a file        | `path` (required), `content` (required), `append` |
+| `list`  | List directory contents        | `dir` (required), `pattern`, `recursive`          |
+| `stats` | Get file or directory metadata | `path` (required)                                 |
 
 ## Dev Stack Architecture
 
@@ -152,7 +152,11 @@ Each server is defined in `morph.json` under `mcpServers[]`. Here is the complet
       "transport": {
         "type": "stdio",
         "command": "node",
-        "args": ["dist/examples/param-mcp-server.js", "--base-path", "/tmp/demo"],
+        "args": [
+          "dist/examples/param-mcp-server.js",
+          "--base-path",
+          "/tmp/demo"
+        ],
         "env": { "DEMO_MODE": "true" }
       }
     }

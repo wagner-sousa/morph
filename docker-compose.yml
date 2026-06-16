@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: morph:latest
+    image: morph:2.0.0
     ports:
       - "${MORPH_WEB_PORT:-3101}:3100"
     # Single persisted folder: db, logs and (optionally) config live here.

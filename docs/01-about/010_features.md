@@ -15,11 +15,11 @@ flowchart LR
 
 Connect MCP servers via any supported transport:
 
-| Transport | Description | Use Case |
-|-----------|-------------|----------|
-| **STDIO** | Child process via stdin/stdout | Local servers, CLIs |
-| **HTTP** | Streamable HTTP transport | Remote servers, OAuth |
-| **SSE** | Server-Sent Events | Legacy streaming servers |
+| Transport | Description                    | Use Case                 |
+| --------- | ------------------------------ | ------------------------ |
+| **STDIO** | Child process via stdin/stdout | Local servers, CLIs      |
+| **HTTP**  | Streamable HTTP transport      | Remote servers, OAuth    |
+| **SSE**   | Server-Sent Events             | Legacy streaming servers |
 
 ## OAuth Support
 
@@ -47,10 +47,10 @@ sequenceDiagram
 
 Live updates on three channels:
 
-| Channel | Data | Frequency |
-|---------|------|-----------|
-| `logs` | New log entries | On each tool call |
-| `stats` | Aggregated metrics | On savings update |
+| Channel  | Data                  | Frequency             |
+| -------- | --------------------- | --------------------- |
+| `logs`   | New log entries       | On each tool call     |
+| `stats`  | Aggregated metrics    | On savings update     |
 | `health` | MCP connection events | On connect/disconnect |
 
 ## SQLite Persistence

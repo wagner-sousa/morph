@@ -66,15 +66,16 @@ graph LR
     BE --> STDIO & HTTP & OAUTH & SSE & PARAMS
 ```
 
-| Name | Transport | Port | Tools |
-|------|-----------|------|-------|
-| `demo-stdio` | STDIO | — | ping, users, echo |
-| `demo-http` | HTTP | 3200 | ping, users, echo |
-| `demo-http-oauth` | HTTP + OAuth | 3202 | ping, echo, time, whoami |
-| `demo-sse` | SSE | 3201 | ping, users, echo |
-| `demo-stdio-params` | STDIO | — | read, write, list, stats |
+| Name                | Transport    | Port | Tools                    |
+| ------------------- | ------------ | ---- | ------------------------ |
+| `demo-stdio`        | STDIO        | —    | ping, users, echo        |
+| `demo-http`         | HTTP         | 3200 | ping, users, echo        |
+| `demo-http-oauth`   | HTTP + OAuth | 3202 | ping, echo, time, whoami |
+| `demo-sse`          | SSE          | 3201 | ping, users, echo        |
+| `demo-stdio-params` | STDIO        | —    | read, write, list, stats |
 
 Start them with:
+
 ```bash
 docker compose -f docker-compose.dev.yml up -d mcp-test-servers
 ```
@@ -173,11 +174,17 @@ Add MORPH as the **only** MCP server in your agent config:
     "morph": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm",
-        "-v", "/path/to/config:/config:ro",
-        "-e", "MORPH_CONFIG=/config/morph.json",
-        "-e", "MORPH_MCP_CONFIG=/config/.mcp.json",
-        "-e", "MORPH_TRANSPORT=stdio",
+        "run",
+        "-i",
+        "--rm",
+        "-v",
+        "/path/to/config:/config:ro",
+        "-e",
+        "MORPH_CONFIG=/config/morph.json",
+        "-e",
+        "MORPH_MCP_CONFIG=/config/.mcp.json",
+        "-e",
+        "MORPH_TRANSPORT=stdio",
         "morph:latest"
       ]
     }
@@ -187,14 +194,14 @@ Add MORPH as the **only** MCP server in your agent config:
 
 ## Web UI (Morph Studio)
 
-| Route | Page |
-|-------|------|
-| `/` | Dashboard — status, calls/min, TOON savings, totalizers |
-| `/mcps` | MCP CRUD — add, edit, remove, toggle servers (inline modal) |
-| `/logs` | Call history with search and level filter |
-| `/logs/:id` | Log detail — JSON original vs TOON, token savings |
-| `/stats` | TOON savings charts (bar, pie) |
-| `/settings` | Global config, import |
+| Route       | Page                                                        |
+| ----------- | ----------------------------------------------------------- |
+| `/`         | Dashboard — status, calls/min, TOON savings, totalizers     |
+| `/mcps`     | MCP CRUD — add, edit, remove, toggle servers (inline modal) |
+| `/logs`     | Call history with search and level filter                   |
+| `/logs/:id` | Log detail — JSON original vs TOON, token savings           |
+| `/stats`    | TOON savings charts (bar, pie)                              |
+| `/settings` | Global config, import                                       |
 
 Real-time updates via WebSocket at `ws://<host>/ws`.
 
@@ -234,6 +241,22 @@ docker run --rm -v "$PWD":/app -w /app node:22 sh -c "npm install && npm run bui
 ```
 
 See [Development Guide](https://wagner-sousa.github.io/morph/03-development/000_development/).
+
+## Releasing
+
+Releases are **fully automated** via [semantic-release](https://semantic-release.gitbook.io/).
+There is no manual version bump — the version is derived from the commit messages.
+
+- Commits must follow [Conventional Commits](https://www.conventionalcommits.org/): `fix:` → patch, `feat:` → minor, `feat!:`/`BREAKING CHANGE:` → major.
+- On every push to `main`, the [Release workflow](.github/workflows/release.yml) runs the test suite and then `semantic-release`, which:
+  1. computes the next version, updates `CHANGELOG.md` and both `package.json` files (root + `web-frontend`);
+  2. commits them back (`chore(release): … [skip ci]`) and pushes the `vX.Y.Z` git tag;
+  3. creates the GitHub Release.
+- The new tag triggers the [Docker workflow](.github/workflows/docker.yml), which builds and publishes `ghcr.io/<repo>:X.Y.Z`, `:X.Y` and `:latest` to GHCR.
+
+**One-time setup:** create a repository secret `RELEASE_TOKEN` (a PAT with `repo` + `workflow` scope). It is required so the tag pushed by the release job triggers the Docker workflow — a tag pushed with the default `GITHUB_TOKEN` would not.
+
+Preview the next release without publishing: `npx semantic-release --dry-run`.
 
 ## Documentation
 

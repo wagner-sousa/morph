@@ -1,7 +1,7 @@
 /**
  * SPEC: routing contract — tool name (as exposed to the agent) → backend MCP.
  */
-import type { Tool } from '../mcp-client/types.js';
+import type { Tool } from "../mcp-client/types.js";
 
 export interface RouteEntry {
   /** Name exposed to the agent (possibly namespaced or aliased). */

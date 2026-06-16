@@ -25,10 +25,10 @@ flowchart LR
 
 ## Key Benefits
 
-| Benefit | Description |
-|---------|-------------|
-| **Token savings** | TOON conversion cuts 30–60% of tokens vs JSON |
-| **Single endpoint** | No per-server MCP configuration needed |
-| **Centralized monitoring** | Dashboard, logs, stats in one place |
-| **Transport agnostic** | Mix stdio, HTTP, SSE servers freely |
-| **Live config updates** | Edit morph.json without restarting |
+| Benefit                    | Description                                   |
+| -------------------------- | --------------------------------------------- |
+| **Token savings**          | TOON conversion cuts 30–60% of tokens vs JSON |
+| **Single endpoint**        | No per-server MCP configuration needed        |
+| **Centralized monitoring** | Dashboard, logs, stats in one place           |
+| **Transport agnostic**     | Mix stdio, HTTP, SSE servers freely           |
+| **Live config updates**    | Edit morph.json without restarting            |
