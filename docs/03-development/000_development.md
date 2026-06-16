@@ -10,6 +10,23 @@ flowchart LR
     B -.->|fails| C
 ```
 
+## Spec Kit workflow
+
+On top of the SDD-Zod loop, MORPH uses **[GitHub Spec Kit](https://github.com/github/spec-kit)** as a governance layer: every feature gets a versioned specification before code. Project principles are codified once in `.specify/memory/constitution.md` and every plan must pass a Constitution Check gate.
+
+```mermaid
+flowchart LR
+    K[constitution] --> S[specify<br/>spec.md]
+    S --> P[plan<br/>plan.md + Constitution Check]
+    P --> T[tasks<br/>tasks.md]
+    T --> I[implement]
+    P -.->|config feature| DM[data-model.md<br/>from schema.ts]
+```
+
+Drive it with the installed skills: `/speckit-constitution → /speckit-specify → /speckit-plan → /speckit-tasks → /speckit-implement`. Each feature lives in `specs/NNN-feature/` (`spec.md` = what/why, `plan.md` = how, `tasks.md` = steps, optional `data-model.md`/`contracts/`).
+
+The Spec Kit sits **above** the zod contract — the spec describes the feature; the zod schema in `src/config/schema.ts` remains the executable contract it references (`gen:schema` regenerates the JSON schemas; never hand-edit them). The v2.0 features are documented retroactively under `specs/` (`001`–`010`).
+
 ## Everything Runs in Docker
 
 No local Node toolchain is needed.
