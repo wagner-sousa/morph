@@ -6,26 +6,21 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 
 const PORT = Number(process.env.HTTP_MCP_PORT ?? 3200);
 
-const server = new Server({ name: 'demo-http', version: '1.0.0' }, { capabilities: { tools: {} } });
-
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [
-    { name: 'ping', description: 'Health check — returns pong', inputSchema: { type: 'object', properties: {} } },
-    {
-      name: 'users',
-      description: 'Return a list of demo users (uniform array — ideal for TOON)',
-      inputSchema: {
-        type: 'object',
-        properties: { count: { type: 'number', description: 'How many users (default 25)' } },
-      },
+const toolDefs = [
+  { name: 'ping', description: 'Health check — returns pong', inputSchema: { type: 'object', properties: {} } },
+  {
+    name: 'users',
+    description: 'Return a list of demo users (uniform array — ideal for TOON)',
+    inputSchema: {
+      type: 'object',
+      properties: { count: { type: 'number', description: 'How many users (default 25)' } },
     },
-    { name: 'echo', description: 'Echo back the given arguments', inputSchema: { type: 'object', properties: {} } },
-  ],
-}));
+  },
+  { name: 'echo', description: 'Echo back the given arguments', inputSchema: { type: 'object', properties: {} } },
+];
 
-server.setRequestHandler(CallToolRequestSchema, async (req) => {
-  const { name, arguments: args } = req.params;
-  switch (name) {
+function callTool(tool: string, args: Record<string, unknown>) {
+  switch (tool) {
     case 'ping':
       return { content: [{ type: 'text', text: 'pong' }] };
     case 'echo':
@@ -43,25 +38,39 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       return { content: [{ type: 'text', text: JSON.stringify(users) }] };
     }
     default:
-      return { isError: true, content: [{ type: 'text', text: `unknown tool ${name}` }] };
+      return { isError: true, content: [{ type: 'text', text: `unknown tool ${tool}` }] };
   }
-});
-
-const transport = new StreamableHTTPServerTransport({
-  sessionIdGenerator: () => crypto.randomUUID(),
-});
-await server.connect(transport);
+}
 
 const app = http.createServer(async (req, res) => {
-  if (req.method === 'POST' && req.url === '/mcp') {
-    const buffers: Buffer[] = [];
-    for await (const chunk of req) buffers.push(chunk);
-    const body = JSON.parse(Buffer.concat(buffers).toString());
-    await transport.handleRequest(req, res, body);
-  } else if (req.method === 'GET' && req.url === '/mcp') {
-    await transport.handleRequest(req, res);
-  } else {
+  const path = req.url!.split('?')[0];
+  if (path !== '/mcp') {
     res.writeHead(405).end('Method Not Allowed');
+    return;
+  }
+  try {
+    const buffers: Buffer[] = [];
+    if (req.method === 'POST') {
+      for await (const chunk of req) buffers.push(chunk);
+    }
+    const body = buffers.length > 0 ? JSON.parse(Buffer.concat(buffers).toString()) : undefined;
+
+    const srv = new Server({ name: 'demo-http', version: '1.0.0' }, { capabilities: { tools: {} } });
+    srv.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: toolDefs }));
+    srv.setRequestHandler(CallToolRequestSchema, async (r) => {
+      const { name, arguments: args } = r.params;
+      return callTool(name, args ?? {});
+    });
+
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+      enableJsonResponse: true,
+    });
+    await srv.connect(transport);
+    await transport.handleRequest(req, res, body);
+  } catch (err) {
+    console.error('HTTP MCP server error:', err);
+    if (!res.headersSent) res.writeHead(500).end('Internal Server Error');
   }
 });
 
