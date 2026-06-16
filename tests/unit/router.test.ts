@@ -11,13 +11,14 @@ function build(opts: {
   toolsByMcp: Record<string, string[]>;
   aliases?: Record<string, Record<string, string>>;
   allowConflicts?: boolean;
+  toolPrefix?: string;
 }): Router {
   const router = new Router(logger);
   router.buildRoutes({
     toolsByMcp: new Map(Object.entries(opts.toolsByMcp).map(([k, v]) => [k, v.map(tool)])),
     aliasesByMcp: new Map(Object.entries(opts.aliases ?? {})),
     allowConflicts: opts.allowConflicts ?? false,
-  });
+  }, opts.toolPrefix ?? '');
   return router;
 }
 
@@ -52,5 +53,41 @@ describe('Router', () => {
   it('throws ToolNotFoundError for unknown tools', () => {
     const r = build({ toolsByMcp: { a: ['x'] } });
     expect(() => r.resolve('nope')).toThrowError(ToolNotFoundError);
+  });
+
+  it('toolPrefix="{name}_" prefixes all tools with underscore', () => {
+    const r = build({ toolsByMcp: { stripe: ['get_balance'], bling: ['list_products'] }, toolPrefix: '{name}_' });
+    expect(r.resolve('stripe_get_balance')).toEqual({ mcpName: 'stripe', originalName: 'get_balance' });
+    expect(r.resolve('bling_list_products')).toEqual({ mcpName: 'bling', originalName: 'list_products' });
+    expect(r.has('get_balance')).toBe(false);
+  });
+
+  it('toolPrefix="{name}:" prefixes all tools with colon', () => {
+    const r = build({ toolsByMcp: { stripe: ['get_balance'] }, toolPrefix: '{name}:' });
+    expect(r.resolve('stripe:get_balance')).toEqual({ mcpName: 'stripe', originalName: 'get_balance' });
+  });
+
+  it('toolPrefix applied even when there are conflicts (no auto-prefix bypass)', () => {
+    const r = build({ toolsByMcp: { a: ['x'], b: ['x'] }, toolPrefix: '{name}.' });
+    expect(r.resolve('a.x')).toEqual({ mcpName: 'a', originalName: 'x' });
+    expect(r.resolve('b.x')).toEqual({ mcpName: 'b', originalName: 'x' });
+    expect(r.has('x')).toBe(false);
+  });
+
+  it('toolPrefix with allowConflicts still prefixes (prefix takes precedence)', () => {
+    const r = build({ toolsByMcp: { a: ['x'], b: ['x'] }, allowConflicts: true, toolPrefix: '{name}_' });
+    expect(r.resolve('a_x')).toEqual({ mcpName: 'a', originalName: 'x' });
+    expect(r.has('x')).toBe(false);
+  });
+
+  it('empty toolPrefix preserves existing behaviour', () => {
+    const r = build({ toolsByMcp: { fs: ['read'] } });
+    expect(r.resolve('read')).toEqual({ mcpName: 'fs', originalName: 'read' });
+  });
+
+  it('getAllTools returns prefixed names when toolPrefix is set', () => {
+    const r = build({ toolsByMcp: { api: ['get_data'] }, toolPrefix: '{name}_' });
+    const names = r.getAllTools().map((t) => t.name);
+    expect(names).toEqual(['api_get_data']);
   });
 });

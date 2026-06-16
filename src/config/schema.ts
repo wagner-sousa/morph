@@ -95,6 +95,10 @@ export const MorphConfigSchema = z
         logLevel: z.enum(LOG_LEVELS).default('info'),
         /** When true, last-registered tool wins on name conflicts (logged). */
         allowConflicts: z.boolean().default(false),
+        /** Template for prefixing exposed tool names. "{name}" is replaced with the MCP name.
+         *  Empty string = no prefix (only prefix on conflicts, current default).
+         *  Examples: "{name}_" → stripe_get_balance, "{name}:" → stripe:get_balance. */
+        toolPrefix: z.string().default(''),
       })
       .default({}),
     mcpServers: z.array(MCPDefinitionSchema).default([]),
