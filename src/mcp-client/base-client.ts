@@ -3,14 +3,14 @@
  * they build the SDK transport object, so the lifecycle, retry, tool listing,
  * and tool calling all live here.
  */
-import { EventEmitter } from 'node:events';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import type { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js';
-import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
-import { CallToolResultSchema } from '@modelcontextprotocol/sdk/types.js';
-import type { Logger } from '../logging/logger.js';
-import { getVersionInfo } from '../utils/version.js';
-import { retry } from '../utils/retry.js';
+import { EventEmitter } from "node:events";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
+import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
+import type { Logger } from "../logging/logger.js";
+import { getVersionInfo } from "../utils/version.js";
+import { retry } from "../utils/retry.js";
 import type {
   CallToolResult,
   ClientEvent,
@@ -18,12 +18,12 @@ import type {
   ClientStatus,
   MCPClient,
   Tool,
-} from './types.js';
+} from "./types.js";
 
 export abstract class BaseMCPClient extends EventEmitter implements MCPClient {
   protected client?: Client;
   protected transport?: Transport;
-  private status: ClientStatus = 'disconnected';
+  private status: ClientStatus = "disconnected";
   private lastError?: string;
   protected readonly logger: Logger;
   protected readonly maxRetries: number;
@@ -43,8 +43,8 @@ export abstract class BaseMCPClient extends EventEmitter implements MCPClient {
   protected abstract createTransport(): Transport;
 
   async connect(): Promise<void> {
-    if (this.status === 'connected') return;
-    this.setStatus('connecting');
+    if (this.status === "connected") return;
+    this.setStatus("connecting");
     const version = getVersionInfo();
 
     try {
@@ -55,43 +55,49 @@ export abstract class BaseMCPClient extends EventEmitter implements MCPClient {
             { name: `morph-proxy/${this.name}`, version: version.version },
             { capabilities: {} },
           );
-          this.transport.onclose = () => this.handleClose();
+          this.transport.onclose = () => {
+            this.handleClose();
+          };
           await this.client.connect(this.transport);
         },
         {
           retries: this.maxRetries,
-          onAttempt: (attempt, err, delay) =>
+          onAttempt: (attempt, err, delay) => {
             this.logger.warn(
               { attempt, delay, err: (err as Error).message },
-              'connect attempt failed, retrying',
-            ),
+              "connect attempt failed, retrying",
+            );
+          },
         },
       );
       this.lastError = undefined;
-      this.setStatus('connected');
-      this.emit('connected');
-      this.logger.info('connected');
+      this.setStatus("connected");
+      this.emit("connected");
+      this.logger.info("connected");
     } catch (err) {
       this.lastError = (err as Error).message;
-      this.setStatus('error');
-      this.emit('error', err);
+      this.setStatus("error");
+      this.emit("error", err);
       throw err;
     }
   }
 
   private handleClose(): void {
-    if (this.status === 'disconnected') return;
-    this.setStatus('disconnected');
-    this.emit('disconnected');
-    this.logger.warn('transport closed');
+    if (this.status === "disconnected") return;
+    this.setStatus("disconnected");
+    this.emit("disconnected");
+    this.logger.warn("transport closed");
   }
 
   async disconnect(): Promise<void> {
-    this.setStatus('disconnected');
+    this.setStatus("disconnected");
     try {
       await this.client?.close();
     } catch (err) {
-      this.logger.debug({ err: (err as Error).message }, 'error during disconnect');
+      this.logger.debug(
+        { err: (err as Error).message },
+        "error during disconnect",
+      );
     } finally {
       this.client = undefined;
       this.transport = undefined;
@@ -107,7 +113,7 @@ export abstract class BaseMCPClient extends EventEmitter implements MCPClient {
   async callTool(name: string, args: unknown): Promise<CallToolResult> {
     const client = this.requireClient();
     const result = await client.callTool(
-      { name, arguments: (args as Record<string, unknown>) ?? {} },
+      { name, arguments: (args as Record<string, unknown> | undefined) ?? {} },
       CallToolResultSchema,
     );
     return result as CallToolResult;
@@ -125,13 +131,18 @@ export abstract class BaseMCPClient extends EventEmitter implements MCPClient {
     return super.on(event, handler);
   }
 
-  override off(event: ClientEvent, handler: (...args: unknown[]) => void): this {
+  override off(
+    event: ClientEvent,
+    handler: (...args: unknown[]) => void,
+  ): this {
     return super.off(event, handler);
   }
 
   private requireClient(): Client {
-    if (!this.client || this.status !== 'connected') {
-      throw new Error(`MCP "${this.name}" is not connected (status: ${this.status})`);
+    if (!this.client || this.status !== "connected") {
+      throw new Error(
+        `MCP "${this.name}" is not connected (status: ${this.status})`,
+      );
     }
     return this.client;
   }

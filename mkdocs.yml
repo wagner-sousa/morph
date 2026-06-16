@@ -8,22 +8,22 @@ edit_uri: edit/main/site/docs/
 nav:
   - Home: index.md
   - About:
-    - 01-about/000_intro.md
-    - Features: 01-about/010_features.md
-    - Demo MCPs: 01-about/020_demo-mcps.md
-    - Architecture: 01-about/030_architecture.md
+      - 01-about/000_intro.md
+      - Features: 01-about/010_features.md
+      - Demo MCPs: 01-about/020_demo-mcps.md
+      - Architecture: 01-about/030_architecture.md
   - Usage:
-    - Quick Start: 02-usage/000_quickstart.md
-    - Configuration: 02-usage/010_configuration.md
-    - Agent Setup: 02-usage/020_agent-setup.md
-    - Transports: 02-usage/030_transports.md
+      - Quick Start: 02-usage/000_quickstart.md
+      - Configuration: 02-usage/010_configuration.md
+      - Agent Setup: 02-usage/020_agent-setup.md
+      - Transports: 02-usage/030_transports.md
   - Development:
-    - Guide: 03-development/000_development.md
-    - Testing: 03-development/010_testing.md
+      - Guide: 03-development/000_development.md
+      - Testing: 03-development/010_testing.md
   - Reference:
-    - API: 04-reference/000_api.md
-    - CLI: 04-reference/010_cli.md
-    - To Do: 04-reference/020_todo.md
+      - API: 04-reference/000_api.md
+      - CLI: 04-reference/010_cli.md
+      - To Do: 04-reference/020_todo.md
 
 theme:
   name: material

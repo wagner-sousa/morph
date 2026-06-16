@@ -5,18 +5,35 @@
  * it emits an `error` and keeps silent about the config so callers can retain
  * the last-known-good one. Diffing/applying changes is the Hub's job.
  */
-import { EventEmitter } from 'node:events';
-import { resolve as resolvePath } from 'node:path';
-import chokidar, { type FSWatcher } from 'chokidar';
-import { loadConfig } from './loader.js';
-import type { MorphConfig } from './types.js';
+import { EventEmitter } from "node:events";
+import { resolve as resolvePath } from "node:path";
+import chokidar, { type FSWatcher } from "chokidar";
+import { loadConfig } from "./loader.js";
+import type { MorphConfig } from "./types.js";
 
 export interface ConfigWatcherEvents {
   change: (config: MorphConfig) => void;
   error: (error: Error) => void;
 }
 
-export class ConfigWatcher extends EventEmitter {
+interface TypedEmitter {
+  on<E extends keyof ConfigWatcherEvents>(
+    event: E,
+    listener: ConfigWatcherEvents[E],
+  ): this;
+  emit<E extends keyof ConfigWatcherEvents>(
+    event: E,
+    ...args: Parameters<ConfigWatcherEvents[E]>
+  ): boolean;
+}
+
+const TypedEventEmitter = EventEmitter as unknown as new () => Omit<
+  EventEmitter,
+  "on" | "emit"
+> &
+  TypedEmitter;
+
+export class ConfigWatcher extends TypedEventEmitter {
   private watcher?: FSWatcher;
   private timer?: NodeJS.Timeout;
 
@@ -30,8 +47,10 @@ export class ConfigWatcher extends EventEmitter {
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 },
     });
-    this.watcher.on('change', () => this.schedule(absolute));
-    this.watcher.on('error', (err) => this.emit('error', err as Error));
+    this.watcher.on("change", () => {
+      this.schedule(absolute);
+    });
+    this.watcher.on("error", (err) => this.emit("error", err as Error));
   }
 
   private schedule(path: string): void {
@@ -42,9 +61,9 @@ export class ConfigWatcher extends EventEmitter {
   private async reload(path: string): Promise<void> {
     try {
       const config = await loadConfig(path);
-      this.emit('change', config);
+      this.emit("change", config);
     } catch (err) {
-      this.emit('error', err as Error);
+      this.emit("error", err as Error);
     }
   }
 
@@ -53,12 +72,4 @@ export class ConfigWatcher extends EventEmitter {
     await this.watcher?.close();
     this.watcher = undefined;
   }
-}
-
-export interface ConfigWatcher {
-  on<E extends keyof ConfigWatcherEvents>(event: E, listener: ConfigWatcherEvents[E]): this;
-  emit<E extends keyof ConfigWatcherEvents>(
-    event: E,
-    ...args: Parameters<ConfigWatcherEvents[E]>
-  ): boolean;
 }

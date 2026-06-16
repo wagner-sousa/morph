@@ -16,12 +16,7 @@
             },
             "logLevel": {
               "type": "string",
-              "enum": [
-                "debug",
-                "info",
-                "warn",
-                "error"
-              ],
+              "enum": ["debug", "info", "warn", "error"],
               "default": "info"
             },
             "allowConflicts": {
@@ -95,10 +90,7 @@
                         "exclusiveMinimum": 0
                       }
                     },
-                    "required": [
-                      "type",
-                      "command"
-                    ],
+                    "required": ["type", "command"],
                     "additionalProperties": false
                   },
                   {
@@ -122,10 +114,7 @@
                         "type": "string"
                       }
                     },
-                    "required": [
-                      "type",
-                      "url"
-                    ],
+                    "required": ["type", "url"],
                     "additionalProperties": false
                   },
                   {
@@ -150,19 +139,13 @@
                         "exclusiveMinimum": 0
                       }
                     },
-                    "required": [
-                      "type",
-                      "url"
-                    ],
+                    "required": ["type", "url"],
                     "additionalProperties": false
                   }
                 ]
               }
             },
-            "required": [
-              "name",
-              "transport"
-            ],
+            "required": ["name", "transport"],
             "additionalProperties": false
           },
           "default": []
@@ -176,11 +159,7 @@
             },
             "delimiter": {
               "type": "string",
-              "enum": [
-                "comma",
-                "tab",
-                "pipe"
-              ],
+              "enum": ["comma", "tab", "pipe"],
               "default": "comma"
             },
             "indent": {
@@ -230,10 +209,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "username",
-                "passwordHash"
-              ],
+              "required": ["username", "passwordHash"],
               "additionalProperties": false
             }
           },

@@ -1,17 +1,22 @@
-import { useState } from 'react';
-import { useLogs } from '../hooks/useLogs';
-import { LogStream } from '../components/LogStream';
-import { Input } from '../components/ui/input';
-import { Select } from '../components/ui/select';
+import { useState } from "react";
+import { useLogs } from "../hooks/useLogs";
+import { LogStream } from "../components/LogStream";
+import { Input } from "../components/ui/input";
+import { Select } from "../components/ui/select";
 
 export function Logs() {
   const { data: logs, isLoading } = useLogs(200);
-  const [search, setSearch] = useState('');
-  const [levelFilter, setLevelFilter] = useState('all');
+  const [search, setSearch] = useState("");
+  const [levelFilter, setLevelFilter] = useState("all");
 
   const filtered = (logs ?? []).filter((l) => {
-    if (levelFilter !== 'all' && l.level !== levelFilter) return false;
-    if (search && !l.toolName.toLowerCase().includes(search.toLowerCase()) && !l.mcpName.toLowerCase().includes(search.toLowerCase())) return false;
+    if (levelFilter !== "all" && l.level !== levelFilter) return false;
+    if (
+      search &&
+      !l.toolName.toLowerCase().includes(search.toLowerCase()) &&
+      !l.mcpName.toLowerCase().includes(search.toLowerCase())
+    )
+      return false;
     return true;
   });
 
@@ -23,17 +28,21 @@ export function Logs() {
         <Input
           placeholder="Search by MCP or tool..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+          }}
           className="max-w-xs"
         />
         <Select
           value={levelFilter}
-          onChange={(e) => setLevelFilter(e.target.value)}
+          onChange={(e) => {
+            setLevelFilter(e.target.value);
+          }}
           options={[
-            { value: 'all', label: 'All Levels' },
-            { value: 'info', label: 'Info' },
-            { value: 'warn', label: 'Warn' },
-            { value: 'error', label: 'Error' },
+            { value: "all", label: "All Levels" },
+            { value: "info", label: "Info" },
+            { value: "warn", label: "Warn" },
+            { value: "error", label: "Error" },
           ]}
           className="w-36"
         />

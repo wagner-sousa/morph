@@ -7,10 +7,10 @@
  *   3. otherwise non-aliased conflicts are auto-prefixed as `${mcp}_${tool}`;
  *   4. if `allowConflicts` is set, the last MCP wins and a warning is logged.
  */
-import type { Logger } from '../logging/logger.js';
-import { ToolNotFoundError } from '../utils/errors.js';
-import type { Tool } from '../mcp-client/types.js';
-import type { ResolvedRoute, RouteEntry, RouterInput } from './types.js';
+import type { Logger } from "../logging/logger.js";
+import { ToolNotFoundError } from "../utils/errors.js";
+import type { Tool } from "../mcp-client/types.js";
+import type { ResolvedRoute, RouteEntry, RouterInput } from "./types.js";
 
 interface Candidate {
   mcpName: string;
@@ -26,7 +26,7 @@ export class Router {
 
   constructor(private readonly logger: Logger) {}
 
-  buildRoutes(input: RouterInput, toolPrefix = ''): void {
+  buildRoutes(input: RouterInput, toolPrefix = ""): void {
     this.routes.clear();
     this.toolDefs.clear();
 
@@ -34,7 +34,10 @@ export class Router {
     for (const [mcpName, tools] of input.toolsByMcp) {
       const aliases = input.aliasesByMcp.get(mcpName) ?? {};
       for (const tool of tools) {
-        const aliased = Object.prototype.hasOwnProperty.call(aliases, tool.name);
+        const aliased = Object.prototype.hasOwnProperty.call(
+          aliases,
+          tool.name,
+        );
         candidates.push({
           mcpName,
           originalName: tool.name,
@@ -54,7 +57,8 @@ export class Router {
     }
 
     const applyPrefix = (mcpName: string, toolName: string): string => {
-      if (toolPrefix) return toolPrefix.replace(/\{name\}/g, mcpName) + toolName;
+      if (toolPrefix)
+        return toolPrefix.replace(/\{name\}/g, mcpName) + toolName;
       return `${mcpName}_${toolName}`;
     };
 
@@ -67,23 +71,29 @@ export class Router {
         const winner = group[group.length - 1];
         this.logger.warn(
           { tool: desiredName, mcps: group.map((g) => g.mcpName) },
-          'tool name conflict — last MCP wins (allowConflicts)',
+          "tool name conflict — last MCP wins (allowConflicts)",
         );
         this.register(desiredName, winner);
         continue;
       }
       // Prefix everything (toolPrefix set OR unresolvable conflict).
-      const reason = toolPrefix ? 'tool prefix configured' : 'tool name conflict — auto-prefixing with MCP name';
-      this.logger.warn({ tool: desiredName, mcps: group.map((g) => g.mcpName) }, reason);
+      const reason = toolPrefix
+        ? "tool prefix configured"
+        : "tool name conflict — auto-prefixing with MCP name";
+      this.logger.warn(
+        { tool: desiredName, mcps: group.map((g) => g.mcpName) },
+        reason,
+      );
       for (const c of group) {
         let exposed = applyPrefix(c.mcpName, c.originalName);
         let i = 2;
-        while (this.routes.has(exposed)) exposed = `${applyPrefix(c.mcpName, c.originalName)}_${i++}`;
+        while (this.routes.has(exposed))
+          exposed = `${applyPrefix(c.mcpName, c.originalName)}_${String(i++)}`;
         this.register(exposed, c);
       }
     }
 
-    this.logger.info({ tools: this.routes.size }, 'routes built');
+    this.logger.info({ tools: this.routes.size }, "routes built");
   }
 
   private register(exposedName: string, c: Candidate): void {

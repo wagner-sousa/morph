@@ -4,7 +4,7 @@
  * Per SDD, the zod schema in {@link ./schema.ts} is the executable contract;
  * these types are the compile-time view of the same contract.
  */
-import type { z } from 'zod';
+import type { z } from "zod";
 import type {
   HealthSchema,
   HttpTransportSchema,
@@ -15,7 +15,7 @@ import type {
   ToonOptionsSchema,
   TransportSchema,
   WebUiSchema,
-} from './schema.js';
+} from "./schema.js";
 
 export type MorphConfig = z.infer<typeof MorphConfigSchema>;
 export type MCPDefinition = z.infer<typeof MCPDefinitionSchema>;
@@ -27,5 +27,5 @@ export type ToonOptions = z.infer<typeof ToonOptionsSchema>;
 export type WebUiConfig = z.infer<typeof WebUiSchema>;
 export type HealthConfig = z.infer<typeof HealthSchema>;
 
-export type TransportType = Transport['type'];
-export type LogLevel = MorphConfig['morph']['logLevel'];
+export type TransportType = Transport["type"];
+export type LogLevel = MorphConfig["morph"]["logLevel"];

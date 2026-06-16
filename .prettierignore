@@ -1,0 +1,9 @@
+dist
+node_modules
+data
+site
+coverage
+package-lock.json
+web-frontend/dist
+web-frontend/node_modules
+web-frontend/package-lock.json

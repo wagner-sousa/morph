@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 export interface WsMessage {
   channel: string;
@@ -18,16 +18,20 @@ export function useWebSocket(onMessage: (msg: WsMessage) => void): boolean {
     let closed = false;
 
     const connect = () => {
-      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      const proto = location.protocol === "https:" ? "wss" : "ws";
       socket = new WebSocket(`${proto}://${location.host}/ws`);
-      socket.onopen = () => setConnected(true);
+      socket.onopen = () => {
+        setConnected(true);
+      };
       socket.onclose = () => {
         setConnected(false);
         if (!closed) retry = setTimeout(connect, 2000);
       };
       socket.onmessage = (ev) => {
         try {
-          handlerRef.current(JSON.parse(ev.data) as WsMessage);
+          const raw: unknown = ev.data;
+          if (typeof raw !== "string") return;
+          handlerRef.current(JSON.parse(raw) as WsMessage);
         } catch {
           /* ignore */
         }

@@ -40,23 +40,23 @@ graph TB
     Registry --> FS
 ```
 
-| Layer | Code | Responsibility |
-|-------|------|----------------|
-| Agent-facing MCP server | `src/mcp-server/server.ts` | Exposes `tools/list` + `tools/call` to the agent |
-| Hub | `src/hub.ts` | Coordinates everything; routes calls, converts, records metrics, persists logs |
-| Router | `src/router/` | Maps exposed tool name → backend MCP (+ conflict resolution) |
-| MCP client factory | `src/mcp-client/factory.ts` | Builds a client per transport type |
-| MCP clients | `src/mcp-client/{stdio,http,sse}-client.ts` | Talk to one backend each (extend `BaseMCPClient`) |
-| Registry | `src/mcp-client/registry.ts` | Lifecycle: connect/disconnect/hot add/remove, tool cache, OAuth provider creation |
-| OAuth provider | `src/mcp-client/oauth-provider.ts` | MCP SDK OAuthClientProvider — PKCE, redirect, token storage |
-| OAuth store | `src/mcp-client/oauth-store.ts` | Persists OAuth sessions (tokens, PKCE verifier, client info) to `oauth-sessions.json` |
-| TOON converter | `src/toon/` | JSON→TOON conversion + optimizer + savings stats |
-| Health checker | `src/health/checker.ts` | Periodic ping of backends |
-| Config | `src/config/` | Load, validate (zod), `${ENV}` resolution, file watch |
-| Web API | `src/web/server.ts` | Fastify REST + WebSocket + static Studio |
-| SQLite persistence | `src/persistence/store.ts` | Logs, call stats, token savings, totalizers |
-| In-memory log store | `src/logging/store.ts` | Circular buffer for live log stream (IDs synced with SQLite) |
-| Metrics | `src/metrics.ts` | Live aggregate stats (calls, tokens, savings by MCP) |
+| Layer                   | Code                                        | Responsibility                                                                        |
+| ----------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Agent-facing MCP server | `src/mcp-server/server.ts`                  | Exposes `tools/list` + `tools/call` to the agent                                      |
+| Hub                     | `src/hub.ts`                                | Coordinates everything; routes calls, converts, records metrics, persists logs        |
+| Router                  | `src/router/`                               | Maps exposed tool name → backend MCP (+ conflict resolution)                          |
+| MCP client factory      | `src/mcp-client/factory.ts`                 | Builds a client per transport type                                                    |
+| MCP clients             | `src/mcp-client/{stdio,http,sse}-client.ts` | Talk to one backend each (extend `BaseMCPClient`)                                     |
+| Registry                | `src/mcp-client/registry.ts`                | Lifecycle: connect/disconnect/hot add/remove, tool cache, OAuth provider creation     |
+| OAuth provider          | `src/mcp-client/oauth-provider.ts`          | MCP SDK OAuthClientProvider — PKCE, redirect, token storage                           |
+| OAuth store             | `src/mcp-client/oauth-store.ts`             | Persists OAuth sessions (tokens, PKCE verifier, client info) to `oauth-sessions.json` |
+| TOON converter          | `src/toon/`                                 | JSON→TOON conversion + optimizer + savings stats                                      |
+| Health checker          | `src/health/checker.ts`                     | Periodic ping of backends                                                             |
+| Config                  | `src/config/`                               | Load, validate (zod), `${ENV}` resolution, file watch                                 |
+| Web API                 | `src/web/server.ts`                         | Fastify REST + WebSocket + static Studio                                              |
+| SQLite persistence      | `src/persistence/store.ts`                  | Logs, call stats, token savings, totalizers                                           |
+| In-memory log store     | `src/logging/store.ts`                      | Circular buffer for live log stream (IDs synced with SQLite)                          |
+| Metrics                 | `src/metrics.ts`                            | Live aggregate stats (calls, tokens, savings by MCP)                                  |
 
 ## Startup Flow
 
@@ -182,11 +182,11 @@ flowchart LR
 
 Tools prefixed with `_morph_` are handled directly by the Hub (never routed):
 
-| Tool | Description |
-|------|-------------|
-| `_morph_status` | MORPH status: connected MCPs, tools count, uptime, version |
-| `_morph_toon_stats` | Aggregate TOON token-savings statistics |
-| `_morph_reload_config` | Force reload of `morph.json` from disk |
+| Tool                   | Description                                                |
+| ---------------------- | ---------------------------------------------------------- |
+| `_morph_status`        | MORPH status: connected MCPs, tools count, uptime, version |
+| `_morph_toon_stats`    | Aggregate TOON token-savings statistics                    |
+| `_morph_reload_config` | Force reload of `morph.json` from disk                     |
 
 All built-in results pass through the TOON converter for consistent output format.
 
@@ -209,7 +209,7 @@ flowchart LR
 
 ## Hot-Reload
 
-`ConfigWatcher` (chokidar, 300 ms debounce) emits only *valid* configs. The Hub diffs old vs new and applies adds/removes/updates to the registry without a full restart, then rebuilds the router and notifies the agent via `notifications/tools/list_changed`.
+`ConfigWatcher` (chokidar, 300 ms debounce) emits only _valid_ configs. The Hub diffs old vs new and applies adds/removes/updates to the registry without a full restart, then rebuilds the router and notifies the agent via `notifications/tools/list_changed`.
 
 ## Graceful Shutdown
 
