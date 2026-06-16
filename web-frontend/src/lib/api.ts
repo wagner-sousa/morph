@@ -106,7 +106,7 @@ export const api = {
     const cfg = await fetch<{ mcpServers: MCPConfig[] }>('/config');
     return cfg.mcpServers?.find((m) => m.name === name) ?? null;
   },
-  updateConfig: (cfg: { mcpServers?: MCPConfig[] }) =>
+  updateConfig: (cfg: Record<string, unknown>) =>
     fetch<void>('/config', { method: 'PUT', body: cfg }),
   oauthStatus: (name: string) =>
     fetch<OAuthStatus>(`/mcps/${encodeURIComponent(name)}/oauth/status`),
