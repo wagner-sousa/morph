@@ -233,10 +233,10 @@ MORPH can import existing MCP configurations from other tools:
 morph import --from ~/.config/Claude/claude_desktop_config.json
 
 # Import from VS Code workspace
-morph import --from .vscode/mcp.json --merge ./morph.json
+morph import --from .vscode/mcp.json --merge ./.mcp.json
 
 # Preview without writing
-morph import --from ~/.copilot/mcp-config.json --dry-run
+morph import --from other/.mcp.json --dry-run
 ```
 
 See the [Configuration](010_configuration.md#importing-existing-configs) page for details.

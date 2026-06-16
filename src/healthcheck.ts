@@ -3,7 +3,10 @@
  * Exits 0 when healthy, 1 otherwise.
  */
 const port = Number(
-  process.env.MORPH_TRANSPORT_PORT ?? process.env.PORT ?? 3100,
+  process.env.MORPH_WEB_PORT ??
+    process.env.MORPH_TRANSPORT_PORT ??
+    process.env.PORT ??
+    3100,
 );
 
 try {

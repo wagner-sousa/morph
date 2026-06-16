@@ -8,8 +8,10 @@
  */
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve as resolvePath } from "node:path";
+import { join } from "node:path";
 import { createLogger } from "./logging/logger.js";
 import { loadConfig } from "./config/loader.js";
+import { resolvePaths } from "./config/paths.js";
 import { getVersionInfo } from "./utils/version.js";
 import { Hub } from "./hub.js";
 import { MorphMCPServer } from "./mcp-server/server.js";
@@ -18,13 +20,7 @@ import { importConfig, type ImportFormat } from "./import/importer.js";
 import type { LogLevel } from "./config/types.js";
 
 interface Flags {
-  [key: string]: string | boolean | undefined;
-}
-
-/** Read a flag as a string, or undefined if unset or a boolean flag. */
-function strFlag(flags: Flags, key: string): string | undefined {
-  const v = flags[key];
-  return typeof v === "string" ? v : undefined;
+  [key: string]: string | boolean;
 }
 
 function parseFlags(argv: string[]): { positional: string[]; flags: Flags } {
@@ -60,6 +56,7 @@ Commands:
 
 Options (start):
   --config, -c <path>   Path to morph.json (default: ./morph.json or $MORPH_CONFIG)
+  --mcp-config <path>   Path to .mcp.json (default: sibling of morph.json or $MORPH_MCP_CONFIG)
   --port, -p <port>     Web UI port (overrides config)
   --transport <type>    Agent transport: stdio | http (default: stdio)
   --log-level <level>   debug | info | warn | error
@@ -70,40 +67,62 @@ Options (start):
 
 Options (import):
   --from <path>         Config file to import (required)
-  --format <format>     claude | vscode | copilot | auto (default)
-  --merge <path>        Merge result into an existing morph.json
+  --format <format>     claude | vscode | auto (default)
+  --merge <path>        Merge result into an existing .mcp.json
   --dry-run             Print result without writing
+
+Environment (override morph.json; CLI flags win over env):
+  MORPH_DATA_DIR        Single data dir for db/logs/config (default ./data)
+  MORPH_LOG_LEVEL       debug | info | warn | error
+  MORPH_LOG_FILE        When set, also write logs to <data>/logs/morph.log
+  MORPH_LOG_DIR         Override the log directory
+  MORPH_WEB_ENABLED     true | false
+  MORPH_WEB_HOST        Web UI bind host
+  MORPH_WEB_PORT        Web UI port
+  MORPH_WEB_PUBLIC_URL  Public URL advertised by the Web UI
+  MORPH_ALLOW_CONFLICTS true | false
+  MORPH_TOOL_PREFIX     Prefix template for exposed tool names
+  MORPH_TOON_*          AUTO_CONVERT, DELIMITER, INDENT, FLATTEN_DEPTH, THRESHOLD
+  MORPH_HEALTH_*        INTERVAL_MS, TIMEOUT_MS, MAX_RETRIES
+  MORPH_CONFIG          Explicit morph.json path (else <data>/morph.json or ./morph.json)
+  MORPH_MCP_CONFIG      Explicit .mcp.json path (else sibling of morph.json)
 `;
 
 async function runStart(flags: Flags): Promise<void> {
-  const configPath = resolvePath(
-    strFlag(flags, "config") ?? process.env.MORPH_CONFIG ?? "./morph.json",
-  );
+  const { dataDir, configPath, mcpPath, logDir } = resolvePaths({
+    configFlag: flags.config as string | undefined,
+    mcpFlag: flags["mcp-config"] as string | undefined,
+  });
 
   if (flags.validate) {
-    await loadConfig(configPath);
+    await loadConfig(configPath, mcpPath);
     process.stderr.write("config is valid\n");
     return;
   }
 
-  const config = await loadConfig(configPath);
-  const logLevelFlag = strFlag(flags, "log-level");
-  if (logLevelFlag) config.morph.logLevel = logLevelFlag as LogLevel;
-  const portFlag = strFlag(flags, "port");
-  if (portFlag) config.webUi.port = Number(portFlag);
+  const config = await loadConfig(configPath, mcpPath);
+  if (flags["log-level"])
+    config.morph.logLevel = flags["log-level"] as LogLevel;
+  if (flags.port) config.webUi.port = Number(flags.port);
 
-  const logger = createLogger(config.morph.logLevel, false);
-  const dataDir = process.env.MORPH_DATA_DIR ?? "./data";
+  // Optional JSON log file inside the data dir (off unless MORPH_LOG_FILE is set).
+  const fileLog =
+    process.env.MORPH_LOG_FILE && process.env.MORPH_LOG_FILE !== "false"
+      ? { path: join(logDir, "morph.log") }
+      : undefined;
+  const logger = createLogger(config.morph.logLevel, false, fileLog);
 
-  const hub = new Hub({ config, configPath, logger, dataDir });
+  const hub = new Hub({ config, configPath, mcpPath, logger, dataDir });
   await hub.start();
 
   const mcpServer = new MorphMCPServer(hub, logger);
   const transport =
-    strFlag(flags, "transport") ?? process.env.MORPH_TRANSPORT ?? "stdio";
+    (flags.transport as string | undefined) ??
+    process.env.MORPH_TRANSPORT ??
+    "stdio";
 
-  const mcpName = strFlag(flags, "mcp");
-  if (mcpName) {
+  if (flags.mcp) {
+    const mcpName = flags.mcp as string;
     logger.info(
       { mcp: mcpName },
       "per-MCP mode: tools available via /api/mcp/:name",
@@ -157,12 +176,15 @@ async function runStart(flags: Flags): Promise<void> {
 }
 
 async function runImport(flags: Flags): Promise<void> {
-  const from = strFlag(flags, "from");
+  const from = flags.from as string;
   if (!from) throw new Error("import requires --from <path>");
-  const raw: unknown = JSON.parse(await readFile(resolvePath(from), "utf8"));
+  const raw = JSON.parse(await readFile(resolvePath(from), "utf8")) as Record<
+    string,
+    unknown
+  >;
   const result = importConfig(
     raw,
-    (strFlag(flags, "format") as ImportFormat | undefined) ?? "auto",
+    (flags.format as ImportFormat | undefined) ?? "auto",
   );
 
   process.stderr.write(
@@ -171,30 +193,41 @@ async function runImport(flags: Flags): Promise<void> {
   for (const w of result.warnings)
     process.stderr.write(`  [WARN] ${w.message}\n`);
 
+  const imported = result.servers;
   if (flags["dry-run"]) {
-    process.stdout.write(JSON.stringify(result.servers, null, 2) + "\n");
+    process.stdout.write(
+      JSON.stringify({ mcpServers: imported }, null, 2) + "\n",
+    );
     return;
   }
 
   const target =
-    strFlag(flags, "merge") ?? strFlag(flags, "config") ?? "./morph.json";
+    (flags.merge as string | undefined) ??
+    (flags.config as string | undefined) ??
+    "./.mcp.json";
   const targetPath = resolvePath(target);
-  let base: { mcpServers?: unknown[] } = { mcpServers: [] };
+  let base: { $schema?: string; mcpServers?: Record<string, unknown> } = {
+    mcpServers: {},
+  };
   try {
     base = JSON.parse(await readFile(targetPath, "utf8")) as {
-      mcpServers?: unknown[];
+      $schema?: string;
+      mcpServers?: Record<string, unknown>;
     };
   } catch {
     // start fresh
   }
-  const existing = (base.mcpServers ?? []) as Array<{ name: string }>;
-  const names = new Set(existing.map((s) => s.name));
-  for (const s of result.servers) if (!names.has(s.name)) existing.push(s);
+  const existing = base.mcpServers ?? {};
+  let added = 0;
+  for (const [name, entry] of Object.entries(imported)) {
+    if (!(name in existing)) {
+      existing[name] = entry;
+      added++;
+    }
+  }
   base.mcpServers = existing;
   await writeFile(targetPath, JSON.stringify(base, null, 2) + "\n");
-  process.stderr.write(
-    `Wrote ${String(result.servers.length)} server(s) to ${targetPath}\n`,
-  );
+  process.stderr.write(`Wrote ${String(added)} server(s) to ${targetPath}\n`);
 }
 
 function delay(ms: number): Promise<void> {

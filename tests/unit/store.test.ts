@@ -19,6 +19,18 @@ afterEach(() => {
 });
 
 describe("Store", () => {
+  it("creates nested data dirs for the db file", () => {
+    const nested = new Store(join(dbDir, "data", "db", "morph.db"));
+    nested.appendLog({
+      mcpName: "fs",
+      toolName: "read",
+      level: "info",
+      message: "ok",
+    });
+    expect(nested.queryLogs()).toHaveLength(1);
+    nested.close();
+  });
+
   it("appends and queries logs", () => {
     store.appendLog({
       mcpName: "fs",

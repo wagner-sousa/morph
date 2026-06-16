@@ -1,29 +1,36 @@
 /**
- * IMPL: import MCP configs from other tools (Claude Desktop, VS Code, Copilot).
+ * IMPL: import MCP configs from other tools (Claude Desktop, VS Code).
  *
- * Normalises differing structures into MORPH's MCPDefinition shape, never
- * copies literal secrets (only `${...}` references), and reports warnings for
- * things that need manual attention (VS Code inputs, Copilot vars, conflicts).
+ * Both tools use a near-identical shape; morph's .mcp.json adopts the Claude
+ * keyed-object format, so importing from Claude is essentially a passthrough and
+ * VS Code only needs its `servers` key renamed to `mcpServers`. Literal secrets
+ * are never copied — only `${...}` references — and VS Code `${input:...}`
+ * placeholders are surfaced as warnings to map to env vars.
  */
-import type { MCPDefinition } from "../config/types.js";
 
-export type ImportFormat = "claude" | "vscode" | "copilot" | "auto";
+export type ImportFormat = "claude" | "vscode" | "auto";
 export type DetectedFormat = Exclude<ImportFormat, "auto">;
 
 export interface ImportWarning {
-  type:
-    | "input_secret"
-    | "copilot_var"
-    | "unknown_format"
-    | "conflict"
-    | "skipped";
+  type: "input_secret" | "unknown_format" | "conflict" | "skipped";
   message: string;
   serverName?: string;
 }
 
+/** A normalized server entry, in .mcp.json (Claude-style) shape. */
+export interface McpServerEntry {
+  type?: "stdio" | "http" | "sse";
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  url?: string;
+  headers?: Record<string, string>;
+}
+
 export interface ImportResult {
   detectedFormat: DetectedFormat;
-  servers: MCPDefinition[];
+  /** Servers as a keyed object, ready to merge into .mcp.json. */
+  servers: Record<string, McpServerEntry>;
   warnings: ImportWarning[];
   unresolvedSecrets: string[];
   stats: {
@@ -44,18 +51,10 @@ interface RawServer {
 }
 
 const INPUT_PATTERN = /\$\{input:([^}]+)\}/g;
-const COPILOT_PATTERN = /\$\{?COPILOT_MCP_[A-Z0-9_]+\}?/g;
 
 export function detectFormat(raw: Record<string, unknown>): DetectedFormat {
   if (raw.servers && typeof raw.servers === "object") return "vscode";
-  if (raw.mcpServers && typeof raw.mcpServers === "object") {
-    // Copilot entries carry a `type: "local"`; Claude entries don't.
-    const first = Object.values(
-      raw.mcpServers as Record<string, RawServer>,
-    )[0] as RawServer | undefined;
-    if (first?.type === "local") return "copilot";
-    return "claude";
-  }
+  if (raw.mcpServers && typeof raw.mcpServers === "object") return "claude";
   throw new Error(
     'unrecognised config format (no "mcpServers" or "servers" key)',
   );
@@ -84,63 +83,32 @@ function collectSecrets(
       message: `VS Code input "${m[1]}" detected — map it to an env var in .env`,
     });
   }
-  for (const m of blob.matchAll(COPILOT_PATTERN)) {
-    unresolved.add(m[0]);
-    warnings.push({
-      type: "copilot_var",
-      serverName: name,
-      message: `Copilot variable "${m[0]}" detected — map it to a standard env var`,
-    });
-  }
 }
 
-function normalize(name: string, server: RawServer): MCPDefinition {
-  const rawType = server.type;
-  if (server.url && (rawType === "http" || rawType === "sse")) {
-    return {
-      name,
-      enabled: true,
-      transport:
-        rawType === "sse"
-          ? { type: "sse", url: server.url, headers: server.headers }
-          : { type: "http", url: server.url, headers: server.headers },
-    };
+function normalize(server: RawServer): McpServerEntry {
+  if (server.url && (server.type === "http" || server.type === "sse")) {
+    return { type: server.type, url: server.url, headers: server.headers };
   }
-  // Everything else (including Copilot "local") becomes stdio.
-  return {
-    name,
-    enabled: true,
-    transport: {
-      type: "stdio",
-      command: server.command ?? "",
-      args: server.args ?? [],
-      env: server.env,
-    },
-  };
+  // Everything else becomes stdio (the default).
+  return { command: server.command, args: server.args, env: server.env };
 }
 
 export function importConfig(
-  raw: unknown,
+  raw: Record<string, unknown>,
   format: ImportFormat = "auto",
 ): ImportResult {
-  if (typeof raw !== "object" || raw === null) {
-    throw new Error("config must be a JSON object");
-  }
-  const record = raw as Record<string, unknown>;
-  const detected = format === "auto" ? detectFormat(record) : format;
-  const rawServers = getRawServers(record, detected);
+  const detected = format === "auto" ? detectFormat(raw) : format;
+  const rawServers = getRawServers(raw, detected);
   const warnings: ImportWarning[] = [];
   const unresolved = new Set<string>();
-  const servers: MCPDefinition[] = [];
+  const servers: Record<string, McpServerEntry> = {};
   let skipped = 0;
 
   for (const [name, server] of Object.entries(rawServers)) {
     collectSecrets(server, warnings, unresolved, name);
-    const normalized = normalize(name, server);
-    if (
-      normalized.transport.type === "stdio" &&
-      !normalized.transport.command
-    ) {
+    const normalized = normalize(server);
+    const isStdio = !normalized.type || normalized.type === "stdio";
+    if (isStdio && !normalized.command) {
       skipped++;
       warnings.push({
         type: "skipped",
@@ -149,7 +117,7 @@ export function importConfig(
       });
       continue;
     }
-    servers.push(normalized);
+    servers[name] = normalized;
   }
 
   return {
@@ -159,7 +127,7 @@ export function importConfig(
     unresolvedSecrets: [...unresolved],
     stats: {
       total: Object.keys(rawServers).length,
-      imported: servers.length,
+      imported: Object.keys(servers).length,
       skipped,
       hasConflicts: false,
     },

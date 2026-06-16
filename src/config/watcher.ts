@@ -41,26 +41,37 @@ export class ConfigWatcher extends TypedEventEmitter {
     super();
   }
 
-  watch(filePath: string): void {
-    const absolute = resolvePath(filePath);
-    this.watcher = chokidar.watch(absolute, {
+  private morphPath = "";
+  private mcpPath = "";
+
+  /** Watch both the morph.json and .mcp.json files; a change to either reloads. */
+  watch(morphPath: string, mcpPath: string): void {
+    this.morphPath = resolvePath(morphPath);
+    this.mcpPath = resolvePath(mcpPath);
+    this.watcher = chokidar.watch([this.morphPath, this.mcpPath], {
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 },
     });
+    this.watcher.on("add", () => {
+      this.schedule();
+    });
     this.watcher.on("change", () => {
-      this.schedule(absolute);
+      this.schedule();
+    });
+    this.watcher.on("unlink", () => {
+      this.schedule();
     });
     this.watcher.on("error", (err) => this.emit("error", err as Error));
   }
 
-  private schedule(path: string): void {
+  private schedule(): void {
     if (this.timer) clearTimeout(this.timer);
-    this.timer = setTimeout(() => void this.reload(path), this.debounceMs);
+    this.timer = setTimeout(() => void this.reload(), this.debounceMs);
   }
 
-  private async reload(path: string): Promise<void> {
+  private async reload(): Promise<void> {
     try {
-      const config = await loadConfig(path);
+      const config = await loadConfig(this.morphPath, this.mcpPath);
       this.emit("change", config);
     } catch (err) {
       this.emit("error", err as Error);

@@ -31,7 +31,7 @@ Open **http://localhost:5173** for the Web UI.
 - **Multi-transport** — Connect MCPs via stdio, HTTP, or SSE
 - **OAuth support** — Built-in OAuth client provider for HTTP MCPs with Dynamic Client Registration
 - **Config hot-reload** — Edit `morph.json` without restarting
-- **Import existing configs** — Migrate from Claude Desktop, VS Code, or GitHub Copilot
+- **Import existing configs** — Migrate from Claude Desktop or VS Code
 - **Web UI (Morph Studio)** — Dashboard, logs, stats, MCP management, TOON savings charts
 - **Real-time** — WebSocket for live logs, health, and metrics
 - **SQLite persistence** — Call history, token savings, time-series stats

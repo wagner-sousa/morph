@@ -4,8 +4,8 @@
  * the MCP SDK, already bundled in node_modules). Useful for trying MORPH end to
  * end without downloading any external server.
  *
- * Referenced by morph.demo.json as:
- *   { "type": "stdio", "command": "node", "args": ["dist/examples/demo-mcp-server.js"] }
+ * Referenced by .mcp.demo.json as:
+ *   "demo": { "command": "node", "args": ["dist/examples/demo-mcp-server.js"] }
  *
  * Tools:
  *   ping     — returns "pong"
