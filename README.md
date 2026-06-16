@@ -182,6 +182,22 @@ docker run --rm -v "$PWD":/app -w /app node:22 sh -c "npm install && npm run bui
 
 See [Development Guide](https://wagner-sousa.github.io/morph/03-development/000_development/).
 
+## Releasing
+
+Releases are **fully automated** via [semantic-release](https://semantic-release.gitbook.io/).
+There is no manual version bump — the version is derived from the commit messages.
+
+- Commits must follow [Conventional Commits](https://www.conventionalcommits.org/): `fix:` → patch, `feat:` → minor, `feat!:`/`BREAKING CHANGE:` → major.
+- On every push to `main`, the [Release workflow](.github/workflows/release.yml) runs the test suite and then `semantic-release`, which:
+  1. computes the next version, updates `CHANGELOG.md` and both `package.json` files (root + `web-frontend`);
+  2. commits them back (`chore(release): … [skip ci]`) and pushes the `vX.Y.Z` git tag;
+  3. creates the GitHub Release.
+- The new tag triggers the [Docker workflow](.github/workflows/docker.yml), which builds and publishes `ghcr.io/<repo>:X.Y.Z`, `:X.Y` and `:latest` to GHCR.
+
+**One-time setup:** create a repository secret `RELEASE_TOKEN` (a PAT with `repo` + `workflow` scope). It is required so the tag pushed by the release job triggers the Docker workflow — a tag pushed with the default `GITHUB_TOKEN` would not.
+
+Preview the next release without publishing: `npx semantic-release --dry-run`.
+
 ## Documentation
 
 - [Architecture](https://wagner-sousa.github.io/morph/01-about/030_architecture/) — components, layers, data flow
