@@ -6,7 +6,7 @@
  * those references with values from `process.env`, collecting any that are
  * missing so the loader can fail with a single clear error.
  */
-import { EnvResolutionError } from './errors.js';
+import { EnvResolutionError } from "./errors.js";
 
 const ENV_PATTERN = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
 
@@ -44,13 +44,13 @@ export function resolveEnvVars<T>(value: T, options: ResolveOptions = {}): T {
   const missing = new Set<string>();
 
   const walk = (node: unknown): unknown => {
-    if (typeof node === 'string') {
+    if (typeof node === "string") {
       return resolveString(node, env, missing);
     }
     if (Array.isArray(node)) {
       return node.map(walk);
     }
-    if (node !== null && typeof node === 'object') {
+    if (node !== null && typeof node === "object") {
       const out: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(node)) {
         out[k] = walk(v);
@@ -65,7 +65,7 @@ export function resolveEnvVars<T>(value: T, options: ResolveOptions = {}): T {
   if (strict && missing.size > 0) {
     const names = [...missing].sort();
     throw new EnvResolutionError(
-      `missing required environment variable(s): ${names.join(', ')}`,
+      `missing required environment variable(s): ${names.join(", ")}`,
       names,
     );
   }

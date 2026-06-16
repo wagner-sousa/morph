@@ -23,7 +23,9 @@ export function estimateSavings(original: string, toon: string): TokenSavings {
   const originalTokens = estimateTokens(original);
   const toonTokens = estimateTokens(toon);
   const percent =
-    originalTokens === 0 ? 0 : ((originalTokens - toonTokens) / originalTokens) * 100;
+    originalTokens === 0
+      ? 0
+      : ((originalTokens - toonTokens) / originalTokens) * 100;
   return {
     originalBytes: original.length,
     toonBytes: toon.length,

@@ -1,13 +1,13 @@
 /**
  * IMPL: backend MCP client over Streamable HTTP.
  */
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { auth } from '@modelcontextprotocol/sdk/client/auth.js';
-import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
-import type { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js';
-import { BaseMCPClient } from './base-client.js';
-import type { ClientOptions } from './types.js';
-import type { HttpTransport } from '../config/types.js';
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { auth } from "@modelcontextprotocol/sdk/client/auth.js";
+import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
+import { BaseMCPClient } from "./base-client.js";
+import type { ClientOptions } from "./types.js";
+import type { HttpTransport } from "../config/types.js";
 
 type OAuthProviderExtended = OAuthClientProvider & {
   getAuthorizationUrl?(): string | undefined;
@@ -50,11 +50,12 @@ export class HttpMCPClient extends BaseMCPClient {
   }
 
   private async exchangeCode(authorizationCode: string): Promise<void> {
-    const result = await auth(this.authProvider!, {
+    if (!this.authProvider) throw new Error("no OAuth provider configured");
+    const result = await auth(this.authProvider, {
       serverUrl: this.config.url,
       authorizationCode,
     });
-    if (result !== 'AUTHORIZED') throw new Error('OAuth authorization failed');
+    if (result !== "AUTHORIZED") throw new Error("OAuth authorization failed");
   }
 
   needsOAuth(): boolean {
@@ -62,8 +63,12 @@ export class HttpMCPClient extends BaseMCPClient {
     const lastError = this.getLastError();
     if (!lastError) return false;
     // OAuth needed when HTTP transport gets a 401 or "Unauthorized" error
-    return this.getStatus() === 'error'
-      && (lastError.includes('401') || lastError.includes('Unauthorized') || lastError.includes('unauthorized'));
+    return (
+      this.getStatus() === "error" &&
+      (lastError.includes("401") ||
+        lastError.includes("Unauthorized") ||
+        lastError.includes("unauthorized"))
+    );
   }
 
   getAuthorizationUrl(): string | undefined {

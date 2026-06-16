@@ -6,10 +6,10 @@
  * untouched. Converted items keep the original byte/token accounting in
  * `_meta` so the agent and the Web UI can see the savings.
  */
-import { decode, encode, DELIMITERS } from '@toon-format/toon';
-import type { CallToolResult } from '../mcp-client/types.js';
-import type { ToonOptions } from '../config/types.js';
-import { estimateSavings, type TokenSavings } from './stats.js';
+import { decode, encode, DELIMITERS } from "@toon-format/toon";
+import type { CallToolResult } from "../mcp-client/types.js";
+import type { ToonOptions } from "../config/types.js";
+import { estimateSavings, type TokenSavings } from "./stats.js";
 
 export interface ConversionResult {
   result: CallToolResult;
@@ -28,7 +28,7 @@ export class ToonConverter {
     return encode(data, {
       indent: this.options.indent,
       delimiter: DELIMITERS[this.options.delimiter],
-      keyFolding: this.options.flattenDepth > 0 ? 'safe' : 'off',
+      keyFolding: this.options.flattenDepth > 0 ? "safe" : "off",
     });
   }
 
@@ -36,9 +36,9 @@ export class ToonConverter {
     return decode(toon);
   }
 
-  private isJson(text: string): unknown | undefined {
+  private isJson(text: string): unknown {
     const trimmed = text.trim();
-    if (!trimmed || !'[{'.includes(trimmed[0])) return undefined;
+    if (!trimmed || !"[{".includes(trimmed[0])) return undefined;
     try {
       return JSON.parse(trimmed);
     } catch {
@@ -53,12 +53,10 @@ export class ToonConverter {
   convertResult(result: CallToolResult): ConversionResult {
     if (!Array.isArray(result.content)) return { result, converted: false };
 
-    let totalOriginal = 0;
-    let totalToon = 0;
-    let anyConverted = false;
+    const totals = { original: 0, toon: 0, converted: 0 };
 
     const content = result.content.map((item) => {
-      if (item.type !== 'text' || typeof item.text !== 'string') return item;
+      if (item.type !== "text" || typeof item.text !== "string") return item;
       const parsed = this.isJson(item.text);
       if (parsed === undefined) return item;
 
@@ -72,35 +70,40 @@ export class ToonConverter {
       if (toon.length >= item.text.length) return item;
 
       const savings = estimateSavings(item.text, toon);
-      totalOriginal += savings.originalTokens;
-      totalToon += savings.toonTokens;
-      anyConverted = true;
+      totals.original += savings.originalTokens;
+      totals.toon += savings.toonTokens;
+      totals.converted += 1;
 
       return {
         ...item,
         text: toon,
         _meta: {
-          'morph/format': 'toon',
-          'morph/originalTokens': savings.originalTokens,
-          'morph/toonTokens': savings.toonTokens,
-          'morph/savingsPercent': savings.percent,
+          "morph/format": "toon",
+          "morph/originalTokens": savings.originalTokens,
+          "morph/toonTokens": savings.toonTokens,
+          "morph/savingsPercent": savings.percent,
         },
       };
     });
 
-    if (!anyConverted) return { result, converted: false };
+    if (totals.converted === 0) return { result, converted: false };
 
     return {
       result: { ...result, content },
       converted: true,
-      savings: estimateSavingsFromTotals(totalOriginal, totalToon),
+      savings: estimateSavingsFromTotals(totals.original, totals.toon),
     };
   }
 }
 
-function estimateSavingsFromTotals(originalTokens: number, toonTokens: number): TokenSavings {
+function estimateSavingsFromTotals(
+  originalTokens: number,
+  toonTokens: number,
+): TokenSavings {
   const percent =
-    originalTokens === 0 ? 0 : ((originalTokens - toonTokens) / originalTokens) * 100;
+    originalTokens === 0
+      ? 0
+      : ((originalTokens - toonTokens) / originalTokens) * 100;
   return {
     originalBytes: originalTokens * 4,
     toonBytes: toonTokens * 4,

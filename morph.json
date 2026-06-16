@@ -51,7 +51,11 @@
       "transport": {
         "type": "stdio",
         "command": "node",
-        "args": ["dist/examples/param-mcp-server.js", "--base-path", "/tmp/demo"],
+        "args": [
+          "dist/examples/param-mcp-server.js",
+          "--base-path",
+          "/tmp/demo"
+        ],
         "env": { "DEMO_MODE": "true" }
       }
     },

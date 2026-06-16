@@ -5,9 +5,9 @@
  * persisted separately by the SQLite store; this is the hot buffer that backs
  * `/api/logs` and the realtime log stream.
  */
-import { EventEmitter } from 'node:events';
+import { EventEmitter } from "node:events";
 
-export type LogLevelName = 'debug' | 'info' | 'warn' | 'error';
+export type LogLevelName = "debug" | "info" | "warn" | "error";
 
 export interface LogEntry {
   id: number;
@@ -41,7 +41,12 @@ export class LogStore extends EventEmitter {
     this.setMaxListeners(0);
   }
 
-  append(entry: Omit<LogEntry, 'id' | 'createdAt'> & { createdAt?: string; id?: number }): LogEntry {
+  append(
+    entry: Omit<LogEntry, "id" | "createdAt"> & {
+      createdAt?: string;
+      id?: number;
+    },
+  ): LogEntry {
     const full: LogEntry = {
       id: entry.id ?? this.nextId++,
       createdAt: entry.createdAt ?? new Date().toISOString(),
@@ -59,7 +64,7 @@ export class LogStore extends EventEmitter {
     };
     this.buffer.push(full);
     if (this.buffer.length > this.capacity) this.buffer.shift();
-    this.emit('log', full);
+    this.emit("log", full);
     return full;
   }
 
@@ -76,7 +81,7 @@ export class LogStore extends EventEmitter {
   }
 
   onLog(handler: (entry: LogEntry) => void): () => void {
-    this.on('log', handler);
-    return () => this.off('log', handler);
+    this.on("log", handler);
+    return () => this.off("log", handler);
   }
 }

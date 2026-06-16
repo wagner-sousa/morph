@@ -1,11 +1,11 @@
 /**
  * IMPL: backend MCP client over stdio (spawns a child process).
  */
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
-import { BaseMCPClient } from './base-client.js';
-import type { ClientOptions } from './types.js';
-import type { StdioTransport } from '../config/types.js';
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { BaseMCPClient } from "./base-client.js";
+import type { ClientOptions } from "./types.js";
+import type { StdioTransport } from "../config/types.js";
 
 export class StdioMCPClient extends BaseMCPClient {
   constructor(
@@ -19,11 +19,11 @@ export class StdioMCPClient extends BaseMCPClient {
   protected createTransport(): Transport {
     return new StdioClientTransport({
       command: this.config.command,
-      args: this.config.args ?? [],
+      args: this.config.args,
       // Child inherits MORPH's env plus any per-server overrides.
       env: { ...filterEnv(process.env), ...(this.config.env ?? {}) },
       cwd: this.config.cwd,
-      stderr: 'inherit',
+      stderr: "inherit",
     });
   }
 }

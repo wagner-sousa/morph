@@ -4,7 +4,7 @@
  * Durable, queryable history lives in the SQLite store; this is the cheap
  * running tally that powers `/api/stats` and the realtime `stats` channel.
  */
-import { EventEmitter } from 'node:events';
+import { EventEmitter } from "node:events";
 
 export interface CallRecord {
   mcpName: string;
@@ -28,7 +28,10 @@ export class Metrics extends EventEmitter {
   private totalTokensSaved = 0;
   private savingsPercentSum = 0;
   private convertedCalls = 0;
-  private readonly byMcp = new Map<string, { calls: number; tokensSaved: number }>();
+  private readonly byMcp = new Map<
+    string,
+    { calls: number; tokensSaved: number }
+  >();
 
   record(rec: CallRecord, savingsPercent = 0): void {
     this.totalCalls++;
@@ -42,7 +45,7 @@ export class Metrics extends EventEmitter {
     entry.calls++;
     entry.tokensSaved += rec.tokensSaved;
     this.byMcp.set(rec.mcpName, entry);
-    this.emit('update', this.snapshot());
+    this.emit("update", this.snapshot());
   }
 
   snapshot(): AggregatedStats {
@@ -53,7 +56,8 @@ export class Metrics extends EventEmitter {
       avgSavingsPercent:
         this.convertedCalls === 0
           ? 0
-          : Math.round((this.savingsPercentSum / this.convertedCalls) * 10) / 10,
+          : Math.round((this.savingsPercentSum / this.convertedCalls) * 10) /
+            10,
       byMcp: Object.fromEntries(this.byMcp),
     };
   }

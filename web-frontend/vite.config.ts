@@ -1,22 +1,22 @@
-import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
     proxy: {
-      '/api': {
-        target: process.env.VITE_API_URL ?? 'http://localhost:3101',
+      "/api": {
+        target: process.env.VITE_API_URL ?? "http://localhost:3101",
         changeOrigin: true,
       },
-      '/ws': {
-        target: process.env.VITE_API_URL ?? 'http://localhost:3101',
+      "/ws": {
+        target: process.env.VITE_API_URL ?? "http://localhost:3101",
         ws: true,
         changeOrigin: true,
       },
     },
   },
-  build: { outDir: 'dist' },
+  build: { outDir: "dist" },
 });

@@ -17,10 +17,10 @@ docker compose -f docker-compose.dev.yml up -d
 
 This starts four services:
 
-| Service | Purpose | Port |
-|---------|---------|------|
-| `morph` | MORPH backend API (hot-reload) | `3101` |
-| `morph-studio` | Web UI frontend (Vite dev server) | `5173` |
+| Service            | Purpose                             | Port        |
+| ------------------ | ----------------------------------- | ----------- |
+| `morph`            | MORPH backend API (hot-reload)      | `3101`      |
+| `morph-studio`     | Web UI frontend (Vite dev server)   | `5173`      |
 | `mcp-test-servers` | 3 demo MCP servers (HTTP/SSE/OAuth) | `3200-3202` |
 
 ## Access the Web UI
@@ -50,11 +50,18 @@ MORPH is pre-configured with 5 demo MCP servers. Use any AI agent that supports 
     "morph": {
       "command": "docker",
       "args": [
-        "run", "--rm", "-i",
-        "-v", "morph.json:/app/morph.json:ro",
-        "-v", "morph_data:/app/data",
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "morph.json:/app/morph.json:ro",
+        "-v",
+        "morph_data:/app/data",
         "ghcr.io/wagner-sousa/morph:latest",
-        "morph", "start", "--transport", "stdio"
+        "morph",
+        "start",
+        "--transport",
+        "stdio"
       ]
     }
   }
@@ -63,7 +70,7 @@ MORPH is pre-configured with 5 demo MCP servers. Use any AI agent that supports 
 
 Open Claude Desktop and try:
 
-> *"List your tools"*
+> _"List your tools"_
 
 Claude will see tools from all 5 demo servers, including:
 

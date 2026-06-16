@@ -7,11 +7,11 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from 'recharts';
-import { type Stats } from '../lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+} from "recharts";
+import { type Stats } from "../lib/api";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
-const COLORS = ['#5eead4', '#14b8a6', '#0d9488', '#2dd4bf', '#5eead4'];
+const COLORS = ["#5eead4", "#14b8a6", "#0d9488", "#2dd4bf", "#5eead4"];
 
 export function TOONStats({ stats }: { stats: Stats | undefined }) {
   const data = stats
@@ -29,7 +29,7 @@ export function TOONStats({ stats }: { stats: Stats | undefined }) {
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold mb-2">
-          {(stats?.totalTokensSaved ?? 0).toLocaleString()}{' '}
+          {(stats?.totalTokensSaved ?? 0).toLocaleString()}{" "}
           <span className="text-sm font-normal text-morph-muted">
             tokens saved (avg {stats?.avgSavingsPercent ?? 0}%)
           </span>
@@ -38,13 +38,13 @@ export function TOONStats({ stats }: { stats: Stats | undefined }) {
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#2a2f3a" />
-              <XAxis dataKey="name" tick={{ fill: '#8b949e', fontSize: 12 }} />
-              <YAxis tick={{ fill: '#8b949e', fontSize: 12 }} />
+              <XAxis dataKey="name" tick={{ fill: "#8b949e", fontSize: 12 }} />
+              <YAxis tick={{ fill: "#8b949e", fontSize: 12 }} />
               <Tooltip
                 contentStyle={{
-                  background: '#161b22',
-                  border: '1px solid #2a2f3a',
-                  borderRadius: '8px',
+                  background: "#161b22",
+                  border: "1px solid #2a2f3a",
+                  borderRadius: "8px",
                 }}
               />
               <Bar dataKey="tokensSaved" radius={[4, 4, 0, 0]}>
