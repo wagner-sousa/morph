@@ -419,7 +419,7 @@ export function Mcps() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {mcps?.map((m) => (
-          <MCPCard key={m.name} mcp={m} onDelete={handleDelete} onRestart={(name) => restartMcp.mutateAsync(name)} onTools={(name) => setToolsMcp(m)} onEdit={handleEditClick} />
+          <MCPCard key={m.name} mcp={m} onDelete={handleDelete} onRestart={(name) => restartMcp.mutateAsync(name)} onTools={() => setToolsMcp(m)} onEdit={handleEditClick} />
         ))}
         {mcps?.length === 0 && (
           <p className="text-sm text-morph-muted col-span-full">No MCP servers configured. Click "Add MCP" to get started.</p>
