@@ -33,6 +33,8 @@ export class Store {
         tool_name TEXT NOT NULL,
         level TEXT NOT NULL DEFAULT 'info',
         message TEXT NOT NULL,
+        input_json TEXT,
+        output_text TEXT,
         duration_ms INTEGER,
         tokens_saved INTEGER,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -50,19 +52,24 @@ export class Store {
       );
       CREATE INDEX IF NOT EXISTS idx_calls_created ON calls(created_at);
     `);
+    // Migration: add columns to existing tables (ignore if already present).
+    try { this.db.exec(`ALTER TABLE logs ADD COLUMN input_json TEXT`); } catch { /* column exists */ }
+    try { this.db.exec(`ALTER TABLE logs ADD COLUMN output_text TEXT`); } catch { /* column exists */ }
   }
 
   appendLog(entry: Pick<LogEntry, 'mcpName' | 'toolName' | 'level' | 'message'> & Partial<LogEntry>): void {
     this.db
       .prepare(
-        `INSERT INTO logs (mcp_name, tool_name, level, message, duration_ms, tokens_saved, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`,
+        `INSERT INTO logs (mcp_name, tool_name, level, message, input_json, output_text, duration_ms, tokens_saved, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`,
       )
       .run(
         entry.mcpName,
         entry.toolName,
         entry.level,
         entry.message,
+        entry.inputJson ?? null,
+        entry.outputText ?? null,
         entry.durationMs ?? null,
         entry.tokensSaved ?? null,
         entry.createdAt ?? null,
@@ -95,6 +102,8 @@ export class Store {
       toolName: r.tool_name as string,
       level: r.level as LogEntry['level'],
       message: r.message as string,
+      inputJson: (r.input_json as string) ?? undefined,
+      outputText: (r.output_text as string) ?? undefined,
       durationMs: (r.duration_ms as number) ?? undefined,
       tokensSaved: (r.tokens_saved as number) ?? undefined,
       createdAt: r.created_at as string,
@@ -134,6 +143,34 @@ export class Store {
          GROUP BY bucket ORDER BY bucket`,
       )
       .all(since) as Array<{ bucket: string; tokensSaved: number; calls: number }>;
+  }
+
+  getLog(id: number): LogEntry | undefined {
+    const row = this.db.prepare(`SELECT * FROM logs WHERE id = ?`).get(id) as Record<string, unknown> | undefined;
+    if (!row) return undefined;
+    return {
+      id: row.id as number,
+      mcpName: row.mcp_name as string,
+      toolName: row.tool_name as string,
+      level: row.level as LogEntry['level'],
+      message: row.message as string,
+      inputJson: (row.input_json as string) ?? undefined,
+      outputText: (row.output_text as string) ?? undefined,
+      durationMs: (row.duration_ms as number) ?? undefined,
+      tokensSaved: (row.tokens_saved as number) ?? undefined,
+      createdAt: row.created_at as string,
+    };
+  }
+
+  getCallTotals(since?: string): { calls: number; tokensSaved: number; durationMs: number } {
+    const where = since ? 'WHERE created_at >= ?' : '';
+    const params = since ? [since] : [];
+    return this.db
+      .prepare(
+        `SELECT COUNT(*) AS calls, COALESCE(SUM(tokens_saved), 0) AS tokensSaved, COALESCE(SUM(duration_ms), 0) AS durationMs
+         FROM calls ${where}`,
+      )
+      .get(...params) as { calls: number; tokensSaved: number; durationMs: number };
   }
 
   close(): void {

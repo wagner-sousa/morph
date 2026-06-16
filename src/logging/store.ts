@@ -15,6 +15,8 @@ export interface LogEntry {
   toolName: string;
   level: LogLevelName;
   message: string;
+  inputJson?: string;
+  outputText?: string;
   durationMs?: number;
   tokensSaved?: number;
   createdAt: string; // ISO 8601

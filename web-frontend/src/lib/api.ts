@@ -70,6 +70,8 @@ export interface LogEntry {
   toolName: string;
   level: string;
   message: string;
+  inputJson?: string;
+  outputText?: string;
   durationMs?: number;
   tokensSaved?: number;
   createdAt: string;
@@ -108,4 +110,5 @@ export const api = {
     fetch<{ authorized: boolean; authorizationUrl?: string }>(`/mcps/${encodeURIComponent(name)}/oauth/start`),
   oauthCallback: (name: string, code: string) =>
     fetch<void>(`/mcps/${encodeURIComponent(name)}/oauth/callback?code=${encodeURIComponent(code)}`),
+  callTotals: (since?: string) => fetch<{ calls: number; tokensSaved: number; durationMs: number }>(`/calls/totals${since ? `?since=${since}` : ''}`),
 };
