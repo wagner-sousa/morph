@@ -140,9 +140,7 @@ export class Hub extends EventEmitter {
     let savingsPercent = 0;
     try {
       const raw = await client.callTool(originalName, args);
-      const conversion = this.config.toon.autoConvert
-        ? this.converter.convertResult(raw)
-        : { result: raw, converted: false, savings: undefined };
+      const conversion = this.converter.convertResult(raw);
       if (conversion.savings) {
         tokensSaved = conversion.savings.originalTokens - conversion.savings.toonTokens;
         savingsPercent = conversion.savings.percent;
