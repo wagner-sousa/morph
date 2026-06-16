@@ -16,18 +16,18 @@ export function Dashboard() {
 
   const refresh = async () => {
     try {
-      const [m, s, l, v, t] = await Promise.all([
+      const [m, s, l, v, t] = await Promise.allSettled([
         api.mcps(),
         api.stats(),
         api.logs(),
         api.version(),
         api.callTotalizers(),
       ]);
-      setMcps(m);
-      setStats(s);
-      setLogs(l);
-      setVersion(v.version);
-      setTotalizers(t);
+      if (m.status === 'fulfilled') setMcps(m.value);
+      if (s.status === 'fulfilled') setStats(s.value);
+      if (l.status === 'fulfilled') setLogs(l.value);
+      if (v.status === 'fulfilled') setVersion(v.value.version);
+      if (t.status === 'fulfilled') setTotalizers(t.value);
     } catch {
       /* backend not ready */
     }

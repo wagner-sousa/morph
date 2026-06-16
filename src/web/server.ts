@@ -317,6 +317,7 @@ export class WebServer {
 
 const STATUS_BY_CODE: Record<string, number> = {
   INVALID_INPUT: 400,
+  NOT_FOUND: 404,
   VALIDATION_ERROR: 422,
   INVALID_CONFIG: 422,
   MCP_NOT_FOUND: 404,
