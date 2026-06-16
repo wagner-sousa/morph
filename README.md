@@ -109,11 +109,20 @@ MORPH is configured via two files:
 }
 ```
 
+Both files are **local** (git-ignored, like `.env`). Start from the committed
+templates:
+
+```bash
+cp morph.example.json morph.json
+cp .mcp.example.json .mcp.json
+```
+
 By default `.mcp.json` is looked up next to `morph.json`; override with
 `--mcp-config <path>` or `MORPH_MCP_CONFIG`. Optional per-server morph fields
 (`enabled`, `description`, `aliases`, `labels`) may be added but are never
 required. Import from another tool with `morph import --from <file>` (Claude and
-VS Code formats).
+VS Code formats). The committed `*.demo.json` files power the `docker-compose.dev.yml`
+demo stack.
 
 See [Configuration](https://wagner-sousa.github.io/morph/02-usage/010_configuration/) for the complete reference.
 

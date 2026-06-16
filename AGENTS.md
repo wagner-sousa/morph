@@ -66,7 +66,7 @@ Config is split into two hot-reloadable files, each with a generated JSON schema
 - **morph.json** (schema: `schema.json`) — gateway behavior: `morph` (version, logLevel, allowConflicts), `toon` (autoConvert, delimiter, indent, flattenDepth, threshold), `webUi`, `health`.
 - **.mcp.json** (schema: `mcp.schema.json`) — the backend MCP servers, in Claude Desktop / VS Code style (`mcpServers` map keyed by name; `command`/`args`/`env` for stdio, `type` + `url` + optional `apiKey` for http/sse). `${VAR}` placeholders are resolved from env at load.
 
-`.demo` variants (`morph.demo.json`, `.mcp.demo.json`) are used by the demo/dev setup. `morph import` migrates configs from Claude Desktop or VS Code ([src/import/importer.ts](src/import/importer.ts)).
+`morph.json` and `.mcp.json` are **local instance config** (git-ignored, like `.env`); the committed `morph.example.json` / `.mcp.example.json` are templates to copy. The `.demo` variants (`morph.demo.json`, `.mcp.demo.json`) are committed and power the demo/dev stack (`docker-compose.dev.yml`). `morph import` migrates configs from Claude Desktop or VS Code ([src/import/importer.ts](src/import/importer.ts)).
 
 ## Testing
 

@@ -7,6 +7,15 @@ Configuration lives in **two files**:
 
 Both schemas are generated from the zod schema via `npm run gen:schema`. By default `.mcp.json` is looked up next to `morph.json` (override with `--mcp-config` / `MORPH_MCP_CONFIG`). All string values support `${ENV_VAR}` interpolation, resolved from the environment / `.env`. A standard `.mcp.json` exported from Claude or VS Code can be used directly — none of the morph-specific fields are required.
 
+Both files are **local instance config** and git-ignored (like `.env`). Copy the committed templates to get started:
+
+```bash
+cp morph.example.json morph.json
+cp .mcp.example.json .mcp.json
+```
+
+The committed `morph.demo.json` / `.mcp.demo.json` power the `docker-compose.dev.yml` demo stack and require no copying.
+
 ## Schema Overview
 
 ```mermaid

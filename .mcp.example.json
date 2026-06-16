@@ -1,0 +1,16 @@
+{
+  "$schema": "./mcp.schema.json",
+  "mcpServers": {
+    "filesystem": {
+      "description": "Example stdio MCP server launched via npx",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/dir"]
+    },
+    "my-api": {
+      "description": "Example HTTP MCP server (secret comes from the environment / .env)",
+      "type": "http",
+      "url": "https://example.com/mcp",
+      "apiKey": "${MY_API_KEY}"
+    }
+  }
+}

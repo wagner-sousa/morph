@@ -14,7 +14,7 @@
   "webUi": {
     "enabled": true,
     "host": "0.0.0.0",
-    "port": 3100
+    "port": 3101
   },
   "health": {
     "intervalMs": 30000,

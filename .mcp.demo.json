@@ -1,10 +1,32 @@
 {
   "$schema": "./mcp.schema.json",
   "mcpServers": {
-    "demo": {
-      "description": "Self-contained offline demo MCP server (ping/users/echo)",
+    "demo-stdio": {
+      "description": "Demo MCP via STDIO with basic tools (ping, users, echo) — works fully offline",
       "command": "node",
       "args": ["dist/examples/demo-mcp-server.js"]
+    },
+    "demo-http": {
+      "description": "Demo MCP via HTTP without authentication (mcp-test-servers)",
+      "type": "http",
+      "url": "http://mcp-test-servers:3200/mcp"
+    },
+    "demo-http-oauth": {
+      "description": "Demo MCP via HTTP with OAuth authentication mock (mcp-test-servers)",
+      "type": "http",
+      "url": "http://mcp-test-servers:3202/mcp",
+      "apiKey": "demo-token"
+    },
+    "demo-sse": {
+      "description": "Demo MCP via SSE streaming transport (mcp-test-servers)",
+      "type": "sse",
+      "url": "http://mcp-test-servers:3201/sse"
+    },
+    "demo-stdio-params": {
+      "description": "Demo MCP with parameterized tools (read/write/list/stats) and env DEMO_MODE",
+      "command": "node",
+      "args": ["dist/examples/param-mcp-server.js", "--base-path", "/tmp/demo"],
+      "env": { "DEMO_MODE": "true" }
     }
   }
 }
