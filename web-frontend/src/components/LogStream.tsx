@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { type LogEntry } from '../lib/api';
 import { type WsMessage, useWebSocket } from '../lib/ws';
 import { Badge } from './ui/badge';
@@ -18,6 +18,7 @@ const levelVariant = (lvl: string) => {
 };
 
 export function LogStream({ initial }: LogStreamProps) {
+  const navigate = useNavigate();
   const [logs, setLogs] = useState<LogEntry[]>(initial.slice(0, 50));
 
   useEffect(() => {
@@ -46,19 +47,21 @@ export function LogStream({ initial }: LogStreamProps) {
         </TableHeader>
         <TableBody>
           {logs.map((l) => (
-            <TableRow key={l.id} className="cursor-pointer hover:bg-morph-bg-alt/50">
-              <Link to="/logs/$id" params={{ id: String(l.id) }} className="contents">
-                <TableCell className="text-morph-muted text-xs">
-                  {new Date(l.createdAt).toLocaleTimeString()}
-                </TableCell>
-                <TableCell>{l.mcpName}</TableCell>
-                <TableCell className="font-mono text-xs">{l.toolName}</TableCell>
-                <TableCell>
-                  <Badge variant={levelVariant(l.level)}>{l.level}</Badge>
-                </TableCell>
-                <TableCell>{l.durationMs != null ? `${l.durationMs}ms` : '—'}</TableCell>
-                <TableCell>{l.tokensSaved ? `${l.tokensSaved}` : '—'}</TableCell>
-              </Link>
+            <TableRow
+              key={l.id}
+              className="cursor-pointer hover:bg-morph-bg-alt/50"
+              onClick={() => navigate({ to: '/logs/$id', params: { id: String(l.id) } })}
+            >
+              <TableCell className="text-morph-muted text-xs">
+                {new Date(l.createdAt).toLocaleTimeString()}
+              </TableCell>
+              <TableCell>{l.mcpName}</TableCell>
+              <TableCell className="font-mono text-xs">{l.toolName}</TableCell>
+              <TableCell>
+                <Badge variant={levelVariant(l.level)}>{l.level}</Badge>
+              </TableCell>
+              <TableCell>{l.durationMs != null ? `${l.durationMs}ms` : '—'}</TableCell>
+              <TableCell>{l.tokensSaved ? `${l.tokensSaved}` : '—'}</TableCell>
             </TableRow>
           ))}
           {logs.length === 0 && (
