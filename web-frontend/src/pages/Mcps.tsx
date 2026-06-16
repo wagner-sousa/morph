@@ -4,6 +4,7 @@ import { Loader2, Plus } from 'lucide-react';
 import { api, type MCPConfig, type MCPTransport } from '../lib/api';
 import { useAddMcp, useDeleteMcp, useMcps, useRestartMcp, useUpdateMcp } from '../hooks/useMcps';
 import { MCPCard } from '../components/MCPCard';
+import { MCPToolsModal } from '../components/MCPToolsModal';
 import { Button } from '../components/ui/button';
 import {
   Dialog,
@@ -196,6 +197,7 @@ export function Mcps() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<MCPForm | null>(null);
   const [oauthAdding, setOauthAdding] = useState<string | null>(null);
+  const [toolsMcp, setToolsMcp] = useState<MCPStatus | null>(null);
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
@@ -379,7 +381,7 @@ export function Mcps() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {mcps?.map((m) => (
-          <MCPCard key={m.name} mcp={m} onDelete={handleDelete} onRestart={(name) => restartMcp.mutateAsync(name)} onTools={() => {}} onEdit={handleEditClick} />
+          <MCPCard key={m.name} mcp={m} onDelete={handleDelete} onRestart={(name) => restartMcp.mutateAsync(name)} onTools={(name) => setToolsMcp(m)} onEdit={handleEditClick} />
         ))}
         {mcps?.length === 0 && (
           <p className="text-sm text-morph-muted col-span-full">
@@ -387,6 +389,8 @@ export function Mcps() {
           </p>
         )}
       </div>
+
+      <MCPToolsModal mcp={toolsMcp} open={!!toolsMcp} onOpenChange={(v) => { if (!v) setToolsMcp(null); }} />
     </div>
   );
 }
