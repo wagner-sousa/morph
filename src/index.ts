@@ -7,7 +7,7 @@
  *   import  import MCP configs from other tools
  */
 import { readFile, writeFile } from 'node:fs/promises';
-import { resolve as resolvePath } from 'node:path';
+import { resolve as resolvePath, dirname, basename } from 'node:path';
 import { createLogger } from './logging/logger.js';
 import { loadConfig } from './config/loader.js';
 import { getVersionInfo } from './utils/version.js';
@@ -54,6 +54,7 @@ Commands:
 
 Options (start):
   --config, -c <path>   Path to morph.json (default: ./morph.json or $MORPH_CONFIG)
+  --mcp-config <path>   Path to .mcp.json (default: sibling of morph.json or $MORPH_MCP_CONFIG)
   --port, -p <port>     Web UI port (overrides config)
   --transport <type>    Agent transport: stdio | http (default: stdio)
   --log-level <level>   debug | info | warn | error
@@ -64,30 +65,45 @@ Options (start):
 
 Options (import):
   --from <path>         Config file to import (required)
-  --format <format>     claude | vscode | copilot | auto (default)
-  --merge <path>        Merge result into an existing morph.json
+  --format <format>     claude | vscode | auto (default)
+  --merge <path>        Merge result into an existing .mcp.json
   --dry-run             Print result without writing
 `;
+
+/**
+ * Derive the .mcp.json path: explicit flag/env wins, otherwise a sibling of the
+ * morph config — `morph<suffix>.json` → `.mcp<suffix>.json` in the same folder.
+ */
+function resolveMcpConfigPath(flags: Flags, configPath: string): string {
+  const explicit = (flags['mcp-config'] as string) ?? process.env.MORPH_MCP_CONFIG;
+  if (explicit) return resolvePath(explicit);
+  const dir = dirname(configPath);
+  const base = basename(configPath);
+  const m = base.match(/^morph(.*)\.json$/);
+  const sibling = m ? `.mcp${m[1]}.json` : '.mcp.json';
+  return resolvePath(dir, sibling);
+}
 
 async function runStart(flags: Flags): Promise<void> {
   const configPath = resolvePath(
     (flags.config as string) ?? process.env.MORPH_CONFIG ?? './morph.json',
   );
+  const mcpPath = resolveMcpConfigPath(flags, configPath);
 
   if (flags.validate) {
-    await loadConfig(configPath);
+    await loadConfig(configPath, mcpPath);
     process.stderr.write('config is valid\n');
     return;
   }
 
-  const config = await loadConfig(configPath);
+  const config = await loadConfig(configPath, mcpPath);
   if (flags['log-level']) config.morph.logLevel = flags['log-level'] as LogLevel;
   if (flags.port) config.webUi.port = Number(flags.port);
 
   const logger = createLogger(config.morph.logLevel, false);
   const dataDir = process.env.MORPH_DATA_DIR ?? './data';
 
-  const hub = new Hub({ config, configPath, logger, dataDir });
+  const hub = new Hub({ config, configPath, mcpPath, logger, dataDir });
   await hub.start();
 
   const mcpServer = new MorphMCPServer(hub, logger);
@@ -148,25 +164,31 @@ async function runImport(flags: Flags): Promise<void> {
   );
   for (const w of result.warnings) process.stderr.write(`  [WARN] ${w.message}\n`);
 
+  const imported = result.servers;
   if (flags['dry-run']) {
-    process.stdout.write(JSON.stringify(result.servers, null, 2) + '\n');
+    process.stdout.write(JSON.stringify({ mcpServers: imported }, null, 2) + '\n');
     return;
   }
 
-  const target = (flags.merge as string) ?? (flags.config as string) ?? './morph.json';
+  const target = (flags.merge as string) ?? (flags.config as string) ?? './.mcp.json';
   const targetPath = resolvePath(target);
-  let base: { mcpServers?: unknown[] } = { mcpServers: [] };
+  let base: { $schema?: string; mcpServers?: Record<string, unknown> } = { mcpServers: {} };
   try {
     base = JSON.parse(await readFile(targetPath, 'utf8'));
   } catch {
     // start fresh
   }
-  const existing = (base.mcpServers ?? []) as Array<{ name: string }>;
-  const names = new Set(existing.map((s) => s.name));
-  for (const s of result.servers) if (!names.has(s.name)) existing.push(s as never);
+  const existing = base.mcpServers ?? {};
+  let added = 0;
+  for (const [name, entry] of Object.entries(imported)) {
+    if (!(name in existing)) {
+      existing[name] = entry;
+      added++;
+    }
+  }
   base.mcpServers = existing;
   await writeFile(targetPath, JSON.stringify(base, null, 2) + '\n');
-  process.stderr.write(`Wrote ${result.servers.length} server(s) to ${targetPath}\n`);
+  process.stderr.write(`Wrote ${added} server(s) to ${targetPath}\n`);
 }
 
 function delay(ms: number): Promise<void> {

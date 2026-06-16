@@ -5,66 +5,6 @@
     "logLevel": "info",
     "allowConflicts": false
   },
-  "mcpServers": [
-    {
-      "name": "demo-stdio",
-      "enabled": true,
-      "description": "Demo MCP via STDIO with basic tools (ping, users, echo)",
-      "transport": {
-        "type": "stdio",
-        "command": "node",
-        "args": ["dist/examples/demo-mcp-server.js"]
-      }
-    },
-    {
-      "name": "demo-http",
-      "enabled": true,
-      "description": "Demo MCP via HTTP without authentication",
-      "transport": {
-        "type": "http",
-        "url": "http://mcp-test-servers:3200/mcp"
-      }
-    },
-    {
-      "name": "demo-http-oauth",
-      "enabled": true,
-      "description": "Demo MCP via HTTP with OAuth authentication mock",
-      "transport": {
-        "type": "http",
-        "url": "http://mcp-test-servers:3202/mcp",
-        "apiKey": "demo-token"
-      }
-    },
-    {
-      "name": "demo-sse",
-      "enabled": true,
-      "description": "Demo MCP via SSE streaming transport",
-      "transport": {
-        "type": "sse",
-        "url": "http://mcp-test-servers:3201/sse"
-      }
-    },
-    {
-      "name": "demo-stdio-params",
-      "enabled": true,
-      "description": "Demo MCP with parameterized tools (read/write/list/stats) and env DEMO_MODE",
-      "transport": {
-        "type": "stdio",
-        "command": "node",
-        "args": ["dist/examples/param-mcp-server.js", "--base-path", "/tmp/demo"],
-        "env": { "DEMO_MODE": "true" }
-      }
-    },
-    {
-      "name": "Stripe",
-      "enabled": true,
-      "description": "Stripe API access",
-      "transport": {
-        "type": "http",
-        "url": "https://mcp.stripe.com"
-      }
-    }
-  ],
   "toon": {
     "autoConvert": true,
     "delimiter": "comma",

@@ -8,12 +8,14 @@ services:
       - "3101:3100"
     volumes:
       - ./morph.json:/app/morph.json:ro
+      - ./.mcp.json:/app/.mcp.json:ro
       - ./data:/app/data
     env_file:
       - ./.env
     environment:
       - NODE_ENV=production
       - MORPH_CONFIG=/app/morph.json
+      - MORPH_MCP_CONFIG=/app/.mcp.json
       - MORPH_DATA_DIR=/app/data
       - MORPH_TRANSPORT=http
     restart: unless-stopped

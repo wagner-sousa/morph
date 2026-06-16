@@ -8,6 +8,11 @@ const minimal = {
   ],
 };
 
+/** Build the two on-disk JSON strings (morph.json + .mcp.json). */
+function texts(mcpServers: Record<string, unknown> = {}, morph: Record<string, unknown> = {}) {
+  return [JSON.stringify(morph), JSON.stringify({ mcpServers })] as const;
+}
+
 describe('config loader', () => {
   it('applies defaults for omitted sections', () => {
     const cfg = validateConfig(minimal);
@@ -18,7 +23,30 @@ describe('config loader', () => {
     expect(cfg.mcpServers[0].enabled).toBe(true);
   });
 
-  it('rejects duplicate MCP names', () => {
+  it('merges morph.json and .mcp.json into one config', () => {
+    const [m, mcp] = texts({ fs: { command: 'node', args: ['s.js'] } });
+    const cfg = parseConfig(m, mcp);
+    expect(cfg.mcpServers).toHaveLength(1);
+    expect(cfg.mcpServers[0].name).toBe('fs');
+    expect(cfg.mcpServers[0].transport.type).toBe('stdio');
+  });
+
+  it('treats a missing .mcp.json as no servers', () => {
+    const cfg = parseConfig('{}', undefined);
+    expect(cfg.mcpServers).toEqual([]);
+  });
+
+  it('infers http/sse transports from the entry fields', () => {
+    const [m, mcp] = texts({
+      api: { type: 'http', url: 'https://x/mcp' },
+      stream: { type: 'sse', url: 'https://x/sse' },
+    });
+    const cfg = parseConfig(m, mcp);
+    const byName = Object.fromEntries(cfg.mcpServers.map((s) => [s.name, s.transport.type]));
+    expect(byName).toEqual({ api: 'http', stream: 'sse' });
+  });
+
+  it('rejects duplicate MCP names in the merged config', () => {
     const dup = {
       mcpServers: [
         { name: 'a', transport: { type: 'stdio', command: 'x' } },
@@ -29,51 +57,36 @@ describe('config loader', () => {
   });
 
   it('requires command for stdio and url for http', () => {
-    expect(() =>
-      validateConfig({ mcpServers: [{ name: 'a', transport: { type: 'stdio' } }] }),
-    ).toThrowError(ConfigError);
-    expect(() =>
-      validateConfig({ mcpServers: [{ name: 'a', transport: { type: 'http', url: 'not-a-url' } }] }),
-    ).toThrowError(ConfigError);
+    const [m, badStdio] = texts({ a: {} });
+    expect(() => parseConfig(m, badStdio)).toThrowError(ConfigError);
+    const [, badHttp] = texts({ a: { type: 'http', url: 'not-a-url' } });
+    expect(() => parseConfig(m, badHttp)).toThrowError(ConfigError);
   });
 
   it('resolves env vars when parsing JSON text', () => {
-    const json = JSON.stringify({
-      mcpServers: [
-        { name: 'k', transport: { type: 'http', url: 'https://x/mcp', apiKey: '${MY_KEY}' } },
-      ],
-    });
-    const cfg = parseConfig(json, { env: { MY_KEY: 'abc' } });
+    const [m, mcp] = texts({ k: { type: 'http', url: 'https://x/mcp', apiKey: '${MY_KEY}' } });
+    const cfg = parseConfig(m, mcp, { env: { MY_KEY: 'abc' } });
     const t = cfg.mcpServers[0].transport;
     expect(t.type === 'http' && t.apiKey).toBe('abc');
   });
 
   it('throws on invalid JSON', () => {
-    expect(() => parseConfig('{ not json')).toThrowError(ConfigError);
+    expect(() => parseConfig('{ not json', undefined)).toThrowError(ConfigError);
+    expect(() => parseConfig('{}', '{ not json')).toThrowError(ConfigError);
   });
 
   it('does not require env vars for disabled MCP servers', () => {
-    const json = JSON.stringify({
-      mcpServers: [
-        {
-          name: 'off',
-          enabled: false,
-          transport: { type: 'stdio', command: 'npx', args: ['--key=${MISSING_SECRET}'] },
-        },
-      ],
+    const [m, mcp] = texts({
+      off: { enabled: false, command: 'npx', args: ['--key=${MISSING_SECRET}'] },
     });
-    const cfg = parseConfig(json, { env: {} });
+    const cfg = parseConfig(m, mcp, { env: {} });
     const t = cfg.mcpServers[0].transport;
     // placeholder is left intact rather than blocking startup
     expect(t.type === 'stdio' && t.args).toContain('--key=${MISSING_SECRET}');
   });
 
   it('still requires env vars for enabled MCP servers', () => {
-    const json = JSON.stringify({
-      mcpServers: [
-        { name: 'on', enabled: true, transport: { type: 'stdio', command: '${MISSING_CMD}' } },
-      ],
-    });
-    expect(() => parseConfig(json, { env: {} })).toThrow(/MISSING_CMD/);
+    const [m, mcp] = texts({ on: { enabled: true, command: '${MISSING_CMD}' } });
+    expect(() => parseConfig(m, mcp, { env: {} })).toThrow(/MISSING_CMD/);
   });
 });

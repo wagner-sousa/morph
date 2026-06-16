@@ -20,8 +20,8 @@ graph LR
 - **Automatic TOON conversion** — JSON → TOON on every response, saving 30–60% tokens
 - **Multi-transport** — Connect MCPs via stdio, HTTP, or SSE
 - **OAuth support** — Built-in OAuth client provider for HTTP MCPs with Dynamic Client Registration
-- **Config hot-reload** — Edit `morph.json` without restarting
-- **Import existing configs** — Migrate from Claude Desktop, VS Code, or GitHub Copilot
+- **Config hot-reload** — Edit `morph.json` or `.mcp.json` without restarting
+- **Import existing configs** — Migrate from Claude Desktop or VS Code
 - **Web UI (Morph Studio)** — Dashboard, logs, stats, MCP management, TOON savings charts
 - **Real-time** — WebSocket for live logs, health, and metrics
 - **SQLite persistence** — Call history, token savings, time-series stats
@@ -81,27 +81,39 @@ docker compose -f docker-compose.dev.yml up -d mcp-test-servers
 
 ## Configuration
 
-MORPH is configured via a single `morph.json` file:
+MORPH is configured via two files:
+
+- **`morph.json`** — MORPH settings only (toon / webUi / health / logging):
 
 ```json
 {
-  "mcpServers": [
-    {
-      "name": "my-server",
-      "enabled": true,
-      "description": "My MCP server",
-      "transport": {
-        "type": "stdio",
-        "command": "npx",
-        "args": ["-y", "@org/mcp-server"],
-        "env": { "API_KEY": "${MY_API_KEY}" }
-      }
-    }
-  ],
+  "morph": { "logLevel": "info" },
   "toon": { "autoConvert": true },
   "webUi": { "enabled": true, "port": 3101 }
 }
 ```
+
+- **`.mcp.json`** — your MCP servers, in the standard Claude/`.mcp.json` keyed
+  format. A `.mcp.json` from Claude or VS Code can be dropped in as-is:
+
+```json
+{
+  "mcpServers": {
+    "my-server": {
+      "command": "npx",
+      "args": ["-y", "@org/mcp-server"],
+      "env": { "API_KEY": "${MY_API_KEY}" }
+    },
+    "my-api": { "type": "http", "url": "https://example.com/mcp" }
+  }
+}
+```
+
+By default `.mcp.json` is looked up next to `morph.json`; override with
+`--mcp-config <path>` or `MORPH_MCP_CONFIG`. Optional per-server morph fields
+(`enabled`, `description`, `aliases`, `labels`) may be added but are never
+required. Import from another tool with `morph import --from <file>` (Claude and
+VS Code formats).
 
 See [Configuration](https://wagner-sousa.github.io/morph/02-usage/010_configuration/) for the complete reference.
 
@@ -118,6 +130,7 @@ Add MORPH as the **only** MCP server in your agent config:
         "run", "-i", "--rm",
         "-v", "/path/to/config:/config:ro",
         "-e", "MORPH_CONFIG=/config/morph.json",
+        "-e", "MORPH_MCP_CONFIG=/config/.mcp.json",
         "-e", "MORPH_TRANSPORT=stdio",
         "morph:latest"
       ]

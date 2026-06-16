@@ -30,6 +30,7 @@ import type { MorphConfig, MCPDefinition } from './config/types.js';
 export interface HubOptions {
   config: MorphConfig;
   configPath: string;
+  mcpPath: string;
   logger: Logger;
   dataDir?: string;
 }
@@ -37,6 +38,7 @@ export interface HubOptions {
 export class Hub extends EventEmitter {
   private config: MorphConfig;
   private readonly configPath: string;
+  private readonly mcpPath: string;
   readonly logger: Logger;
   readonly registry: MCPClientRegistry;
   readonly router: Router;
@@ -55,6 +57,7 @@ export class Hub extends EventEmitter {
     super();
     this.config = options.config;
     this.configPath = resolvePath(options.configPath);
+    this.mcpPath = resolvePath(options.mcpPath);
     this.logger = options.logger;
     this.dataDir = resolvePath(options.dataDir ?? './data');
     this.oauthStore = new OAuthStore(this.dataDir);
@@ -87,7 +90,7 @@ export class Hub extends EventEmitter {
       this.watcher.on('error', (err) =>
         this.logger.error({ err: err.message }, 'config reload failed; keeping current config'),
       );
-      this.watcher.watch(this.configPath);
+      this.watcher.watch(this.configPath, this.mcpPath);
     }
     this.logger.info('hub started');
   }
@@ -313,15 +316,15 @@ export class Hub extends EventEmitter {
 
   async reloadFromDisk(): Promise<void> {
     const { loadConfig } = await import('./config/loader.js');
-    const cfg = await loadConfig(this.configPath);
+    const cfg = await loadConfig(this.configPath, this.mcpPath);
     await this.applyConfig(cfg);
   }
 
-  /** Persist current config to disk (preserves $schema if present). */
+  /** Persist current config to disk: morph.json + .mcp.json (preserves $schema). */
   async saveConfig(): Promise<void> {
     const { saveConfig: persist } = await import('./config/loader.js');
-    const schemaRef = (this.config as Record<string, unknown>).$schema as string | undefined;
-    await persist(this.configPath, this.config, schemaRef);
+    const morphSchemaRef = (this.config as Record<string, unknown>).$schema as string | undefined;
+    await persist(this.configPath, this.mcpPath, this.config, { morphSchemaRef });
   }
 
   /** Diff old vs new config and apply changes without a full restart. */

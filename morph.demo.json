@@ -4,18 +4,6 @@
     "version": "1.0",
     "logLevel": "info"
   },
-  "mcpServers": [
-    {
-      "name": "demo",
-      "enabled": true,
-      "description": "Self-contained offline demo MCP server (ping/users/echo)",
-      "transport": {
-        "type": "stdio",
-        "command": "node",
-        "args": ["dist/examples/demo-mcp-server.js"]
-      }
-    }
-  ],
   "toon": {
     "autoConvert": true,
     "delimiter": "comma",

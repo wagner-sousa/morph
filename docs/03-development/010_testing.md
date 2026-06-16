@@ -49,7 +49,7 @@ npx vitest run tests/unit/hub.test.ts  # Single file
 | `tests/unit/oauth-store.test.ts` | 7 | OAuth CRUD, persistence |
 | `tests/unit/config-loader.test.ts` | 7 | Config parsing, validation |
 | `tests/unit/env-resolver.test.ts` | 5 | Environment variable resolution |
-| `tests/unit/importer.test.ts` | 4 | Config import from Claude/VS Code/Copilot |
+| `tests/unit/importer.test.ts` | 4 | Config import from Claude/VS Code |
 | `tests/unit/health-checker.test.ts` | 4 | Start/stop, refresh tools |
 | `tests/integration/tool-routing.test.ts` | 5 | Real stdio round-trip + TOON conversion |
 

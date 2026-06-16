@@ -1,0 +1,10 @@
+{
+  "$schema": "./mcp.schema.json",
+  "mcpServers": {
+    "demo": {
+      "description": "Self-contained offline demo MCP server (ping/users/echo)",
+      "command": "node",
+      "args": ["dist/examples/demo-mcp-server.js"]
+    }
+  }
+}

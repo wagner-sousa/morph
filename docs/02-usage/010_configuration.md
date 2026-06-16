@@ -1,38 +1,54 @@
 # Configuration
 
-`morph.json` is the single source of truth, validated against `schema.json` (generated from the zod schema via `npm run gen:schema`). All string values support `${ENV_VAR}` interpolation, resolved from the environment / `.env`.
+Configuration lives in **two files**:
+
+- **`morph.json`** — MORPH settings (`morph`, `toon`, `webUi`, `health`), validated against `schema.json`.
+- **`.mcp.json`** — the MCP servers, in the standard Claude/`.mcp.json` keyed-object format, validated against `mcp.schema.json`.
+
+Both schemas are generated from the zod schema via `npm run gen:schema`. By default `.mcp.json` is looked up next to `morph.json` (override with `--mcp-config` / `MORPH_MCP_CONFIG`). All string values support `${ENV_VAR}` interpolation, resolved from the environment / `.env`. A standard `.mcp.json` exported from Claude or VS Code can be used directly — none of the morph-specific fields are required.
 
 ## Schema Overview
 
 ```mermaid
 mindmap
+  root((config))
+    morph.json
+      morph
+        version
+        logLevel
+        allowConflicts
+        toolPrefix
+      toon
+      webUi
+      health
+    .mcp.json
+      mcpServers
+        (keyed by name)
+          enabled
+          description
+          labels
+          aliases
+          STDIO
+            command
+            args
+            env
+            cwd
+            timeoutMs
+          HTTP
+            url
+            headers
+            apiKey
+          SSE
+            url
+            headers
+            reconnectIntervalMs
+```
+
+The `morph.json` settings are detailed below; `.mcp.json` is detailed in the `mcpServers` section.
+
+```mermaid
+mindmap
   root((morph.json))
-    morph
-      version
-      logLevel
-      allowConflicts
-      toolPrefix
-    mcpServers[]
-      name
-      enabled
-      description
-      labels
-      aliases
-      transport
-        STDIO
-          command
-          args
-          env
-          cwd
-          timeoutMs
-        HTTP
-          url
-          headers
-          apiKey
-        SSE
-          url
-          headers
-          reconnectIntervalMs
     toon
       autoConvert
       delimiter
@@ -59,21 +75,39 @@ mindmap
 | `morph.logLevel` | `debug\|info\|warn\|error` | `info` | |
 | `morph.allowConflicts` | boolean | `false` | Last MCP wins on tool-name conflict |
 | `morph.toolPrefix` | string | — | Prefix pattern for all exposed tools, e.g. `{name}_` or `{name}:` |
-| `mcpServers` | `MCPDefinition[]` | `[]` | Backend MCP servers |
 | `toon` | object | see below | TOON conversion options |
 | `webUi` | object | see below | Web UI / API |
 | `health` | object | see below | Health-check cadence |
 
-## `mcpServers[]`
+> MCP servers no longer live in `morph.json` — they are defined in `.mcp.json` (see below).
+
+## `mcpServers` (`.mcp.json`)
+
+`.mcp.json` uses the standard Claude keyed-object format: each server is an entry
+under `mcpServers`, **keyed by its name**. The transport is inferred from the
+fields — an entry with `type: "http"|"sse"` + `url` is that transport, anything
+else is `stdio` (so a Claude stdio entry with just `command` works as-is).
+
+```json
+{
+  "$schema": "./mcp.schema.json",
+  "mcpServers": {
+    "filesystem": { "command": "npx", "args": ["-y", "@org/server"] },
+    "my-api": { "type": "http", "url": "https://example.com/mcp" }
+  }
+}
+```
+
+Per-server fields (all optional except the transport fields):
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `name` | string | ✅ | Unique; `[A-Za-z0-9_.-]` |
+| _(key)_ | string | ✅ | The object key is the server name; `[A-Za-z0-9_.-]` |
 | `enabled` | boolean | — | Toggle without removing (default `true`) |
 | `description` | string | — | Human-readable label |
 | `labels` | `Record<string,string>` | — | Metadata tags (team, type, env) |
 | `aliases` | `Record<string,string>` | — | `originalName → exposedName` overrides |
-| `transport` | object | ✅ | One of the three types below |
+| transport fields | — | ✅ | `command`/`args`/… (stdio) or `type`+`url`/… (http/sse) below |
 
 ### Transport: STDIO (local process)
 
@@ -249,7 +283,46 @@ Basic Auth is enabled when `MORPH_WEB_USERNAME` (env) is set; requests to `/api/
 }
 ```
 
-## Complete Multi-Server Example
+## Complete Multi-Server Example (`.mcp.json`)
+
+```json
+{
+  "$schema": "./mcp.schema.json",
+  "mcpServers": {
+    "demo-stdio": {
+      "description": "Demo MCP via STDIO",
+      "command": "node",
+      "args": ["dist/examples/demo-mcp-server.js"]
+    },
+    "demo-http": {
+      "description": "Demo MCP via HTTP",
+      "type": "http",
+      "url": "http://localhost:3200/mcp"
+    },
+    "demo-http-oauth": {
+      "description": "Demo MCP via HTTP with OAuth",
+      "type": "http",
+      "url": "http://localhost:3202/mcp",
+      "apiKey": "demo-token"
+    },
+    "demo-sse": {
+      "description": "Demo MCP via SSE",
+      "type": "sse",
+      "url": "http://localhost:3201/sse"
+    },
+    "demo-stdio-params": {
+      "description": "Demo MCP with parameterized tools",
+      "command": "node",
+      "args": ["dist/examples/param-mcp-server.js", "--base-path", "/tmp/demo"],
+      "env": { "DEMO_MODE": "true" }
+    }
+  }
+}
+```
+
+## Full Reference
+
+`morph.json` (settings):
 
 ```json
 {
@@ -259,57 +332,6 @@ Basic Auth is enabled when `MORPH_WEB_USERNAME` (env) is set; requests to `/api/
     "logLevel": "info",
     "allowConflicts": false
   },
-  "mcpServers": [
-    {
-      "name": "demo-stdio",
-      "enabled": true,
-      "description": "Demo MCP via STDIO",
-      "transport": {
-        "type": "stdio",
-        "command": "node",
-        "args": ["dist/examples/demo-mcp-server.js"]
-      }
-    },
-    {
-      "name": "demo-http",
-      "enabled": true,
-      "description": "Demo MCP via HTTP",
-      "transport": {
-        "type": "http",
-        "url": "http://localhost:3200/mcp"
-      }
-    },
-    {
-      "name": "demo-http-oauth",
-      "enabled": true,
-      "description": "Demo MCP via HTTP with OAuth",
-      "transport": {
-        "type": "http",
-        "url": "http://localhost:3202/mcp",
-        "apiKey": "demo-token"
-      }
-    },
-    {
-      "name": "demo-sse",
-      "enabled": true,
-      "description": "Demo MCP via SSE",
-      "transport": {
-        "type": "sse",
-        "url": "http://localhost:3201/sse"
-      }
-    },
-    {
-      "name": "demo-stdio-params",
-      "enabled": true,
-      "description": "Demo MCP with parameterized tools",
-      "transport": {
-        "type": "stdio",
-        "command": "node",
-        "args": ["dist/examples/param-mcp-server.js", "--base-path", "/tmp/demo"],
-        "env": { "DEMO_MODE": "true" }
-      }
-    }
-  ],
   "toon": {
     "autoConvert": true,
     "delimiter": "comma",
@@ -330,49 +352,23 @@ Basic Auth is enabled when `MORPH_WEB_USERNAME` (env) is set; requests to `/api/
 }
 ```
 
-## Full `morph.json` Reference
+`.mcp.json` (servers, all optional fields shown on one entry):
 
 ```json
 {
-  "$schema": "./schema.json",
-  "morph": {
-    "version": "1.0",
-    "logLevel": "info",
-    "allowConflicts": false
-  },
-  "mcpServers": [
-    {
-      "name": "example",
+  "$schema": "./mcp.schema.json",
+  "mcpServers": {
+    "example": {
       "enabled": true,
       "description": "Example server",
       "labels": { "env": "dev" },
       "aliases": { "read_file": "fs_read" },
-      "transport": {
-        "type": "stdio",
-        "command": "npx",
-        "args": ["-y", "@org/server"],
-        "env": { "TOKEN": "${TOKEN}" },
-        "cwd": "/opt/server",
-        "timeoutMs": 30000
-      }
+      "command": "npx",
+      "args": ["-y", "@org/server"],
+      "env": { "TOKEN": "${TOKEN}" },
+      "cwd": "/opt/server",
+      "timeoutMs": 30000
     }
-  ],
-  "toon": {
-    "autoConvert": true,
-    "delimiter": "comma",
-    "indent": 2,
-    "flattenDepth": 4,
-    "threshold": 100
-  },
-  "webUi": {
-    "enabled": true,
-    "host": "0.0.0.0",
-    "port": 3101
-  },
-  "health": {
-    "intervalMs": 30000,
-    "timeoutMs": 5000,
-    "maxRetries": 3
   }
 }
 ```
@@ -381,7 +377,8 @@ Basic Auth is enabled when `MORPH_WEB_USERNAME` (env) is set; requests to `/api/
 
 | Var | Purpose |
 |-----|---------|
-| `MORPH_CONFIG` | Path to `morph.json` |
+| `MORPH_CONFIG` | Path to `morph.json` (settings) |
+| `MORPH_MCP_CONFIG` | Path to `.mcp.json` (servers); default: sibling of `morph.json` |
 | `MORPH_DATA_DIR` | SQLite directory (default `./data`) |
 | `MORPH_TRANSPORT` | `stdio` (default) or `http` |
 | `MORPH_SHUTDOWN_TIMEOUT` | Drain timeout ms (default `10000`) |
@@ -390,15 +387,17 @@ Basic Auth is enabled when `MORPH_WEB_USERNAME` (env) is set; requests to `/api/
 
 ## Importing Existing Configs
 
+Import writes into `.mcp.json` (Claude and VS Code formats are supported):
+
 ```bash
 # Claude Desktop
 morph import --from ~/.config/Claude/claude_desktop_config.json
 
-# VS Code workspace
-morph import --from .vscode/mcp.json --merge ./morph.json
+# VS Code workspace, into a specific .mcp.json
+morph import --from .vscode/mcp.json --merge ./.mcp.json
 
-# GitHub Copilot CLI
-morph import --from ~/.copilot/mcp-config.json --dry-run
+# Preview without writing
+morph import --from other/.mcp.json --dry-run
 ```
 
-`${input:*}` (VS Code) and `$COPILOT_MCP_*` (Copilot) references are surfaced as warnings to map manually — literal secrets are never copied.
+`${input:*}` (VS Code) references are surfaced as warnings to map manually — literal secrets are never copied. Since `.mcp.json` uses the same format as Claude, importing a Claude config is essentially a copy.

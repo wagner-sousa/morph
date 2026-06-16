@@ -1,12 +1,24 @@
 /**
- * IMPL: loads morph.json, resolves ${ENV_VAR} references, validates with zod.
+ * IMPL: loads morph.json + .mcp.json, resolves ${ENV_VAR} references, merges
+ * and validates with zod.
+ *
+ * Configuration is split across two files:
+ *   - morph.json → morph/toon/webUi/health settings
+ *   - .mcp.json  → MCP servers (Claude-style keyed object)
+ * They are read independently and merged into a single MorphConfig.
  */
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { resolve as resolvePath } from 'node:path';
 import { z } from 'zod';
 import { ConfigError } from '../utils/errors.js';
 import { resolveEnvVars } from '../utils/env.js';
-import { MorphConfigSchema } from './schema.js';
+import {
+  fromMcpDefinitions,
+  McpFileSchema,
+  MorphConfigSchema,
+  MorphFileSchema,
+  toMcpDefinitions,
+} from './schema.js';
 import type { MorphConfig } from './types.js';
 
 export interface LoadOptions {
@@ -25,63 +37,121 @@ function formatZodError(error: z.ZodError): string {
     .join('\n');
 }
 
-/** Validate an already-parsed object against the schema. */
-export function validateConfig(raw: unknown): MorphConfig {
-  const result = MorphConfigSchema.safeParse(raw);
+function parseWith<S extends z.ZodTypeAny>(schema: S, raw: unknown, label: string): z.infer<S> {
+  const result = schema.safeParse(raw);
   if (!result.success) {
-    throw new ConfigError(`invalid configuration:\n${formatZodError(result.error)}`, result.error.issues);
+    throw new ConfigError(`invalid ${label}:\n${formatZodError(result.error)}`, result.error.issues);
   }
   return result.data;
 }
 
+/** Validate an already-merged object against the in-memory config schema. */
+export function validateConfig(raw: unknown): MorphConfig {
+  return parseWith(MorphConfigSchema, raw, 'configuration');
+}
+
 /**
- * Resolve ${ENV_VAR} references across the config. Missing variables are only
- * fatal for the global config and for *enabled* MCP servers — placeholders
- * inside disabled servers are left intact so they never block startup.
+ * Resolve ${ENV_VAR} references across the .mcp.json server map. Missing
+ * variables are only fatal for *enabled* servers — placeholders inside disabled
+ * servers are left intact so they never block startup.
  */
-function resolveConfigEnv(raw: unknown, env?: NodeJS.ProcessEnv): unknown {
-  if (raw && typeof raw === 'object' && Array.isArray((raw as { mcpServers?: unknown }).mcpServers)) {
-    const obj = raw as Record<string, unknown> & { mcpServers: Array<Record<string, unknown>> };
-    const servers = obj.mcpServers.map((server) =>
-      resolveEnvVars(server, { env, strict: server?.enabled !== false }),
-    );
-    const rest = resolveEnvVars({ ...obj, mcpServers: [] }, { env, strict: true });
-    return { ...rest, mcpServers: servers };
+function resolveMcpEnv(
+  servers: Record<string, Record<string, unknown>>,
+  env?: NodeJS.ProcessEnv,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [name, server] of Object.entries(servers)) {
+    out[name] = resolveEnvVars(server, { env, strict: server?.enabled !== false });
   }
-  return resolveEnvVars(raw, { env });
+  return out;
 }
 
-/** Parse a JSON string into a validated config (env already resolved or not). */
-export function parseConfig(jsonText: string, options: LoadOptions = {}): MorphConfig {
-  let parsed: unknown;
+/** Parse the two config JSON strings into a single validated MorphConfig. */
+export function parseConfig(
+  morphText: string,
+  mcpText: string | undefined,
+  options: LoadOptions = {},
+): MorphConfig {
+  let morphRaw: unknown;
   try {
-    parsed = JSON.parse(jsonText);
+    morphRaw = JSON.parse(morphText);
   } catch (err) {
-    throw new ConfigError(`config is not valid JSON: ${(err as Error).message}`);
+    throw new ConfigError(`morph.json is not valid JSON: ${(err as Error).message}`);
   }
 
-  const resolved =
-    options.resolveEnv === false ? parsed : resolveConfigEnv(parsed, options.env);
+  let mcpRaw: unknown = { mcpServers: {} };
+  if (mcpText !== undefined) {
+    try {
+      mcpRaw = JSON.parse(mcpText);
+    } catch (err) {
+      throw new ConfigError(`.mcp.json is not valid JSON: ${(err as Error).message}`);
+    }
+  }
 
-  return validateConfig(resolved);
+  const resolveEnv = options.resolveEnv !== false;
+  const morphResolved = resolveEnv ? resolveEnvVars(morphRaw, { env: options.env }) : morphRaw;
+  const morphFile = parseWith(MorphFileSchema, morphResolved, 'morph.json');
+
+  const mcpFile = parseWith(McpFileSchema, mcpRaw, '.mcp.json');
+  type Entry = z.infer<typeof McpFileSchema>['mcpServers'][string];
+  const serversRecord = (mcpFile.mcpServers ?? {}) as Record<string, Entry>;
+  const serversResolved = resolveEnv
+    ? (resolveMcpEnv(
+        serversRecord as Record<string, Record<string, unknown>>,
+        options.env,
+      ) as Record<string, Entry>)
+    : serversRecord;
+
+  return validateConfig({ ...morphFile, mcpServers: toMcpDefinitions(serversResolved) });
 }
 
-/** Serialize and persist a config back to disk, preserving `$schema` if present. */
-export async function saveConfig(path: string, config: MorphConfig, schemaRef?: string): Promise<void> {
-  const { writeFile } = await import('node:fs/promises');
-  const obj = config as Record<string, unknown>;
-  if (schemaRef) obj.$schema = schemaRef;
-  await writeFile(resolvePath(path), JSON.stringify(obj, null, 2) + '\n');
+export interface SaveOptions {
+  /** $schema reference to write into morph.json (default ./schema.json). */
+  morphSchemaRef?: string;
+  /** $schema reference to write into .mcp.json (default ./mcp.schema.json). */
+  mcpSchemaRef?: string;
 }
 
-/** Read and validate morph.json from disk. */
-export async function loadConfig(path: string, options: LoadOptions = {}): Promise<MorphConfig> {
-  const absolute = resolvePath(path);
-  let text: string;
+/** Persist the merged config back to its two files (morph.json + .mcp.json). */
+export async function saveConfig(
+  morphPath: string,
+  mcpPath: string,
+  config: MorphConfig,
+  options: SaveOptions = {},
+): Promise<void> {
+  const { mcpServers, $schema, ...morph } = config;
+  const morphFile = { $schema: options.morphSchemaRef ?? $schema ?? './schema.json', ...morph };
+  const mcpFile = {
+    $schema: options.mcpSchemaRef ?? './mcp.schema.json',
+    mcpServers: fromMcpDefinitions(mcpServers),
+  };
+  await writeFile(resolvePath(morphPath), JSON.stringify(morphFile, null, 2) + '\n');
+  await writeFile(resolvePath(mcpPath), JSON.stringify(mcpFile, null, 2) + '\n');
+}
+
+async function readOptional(absolute: string): Promise<string | undefined> {
   try {
-    text = await readFile(absolute, 'utf8');
+    return await readFile(absolute, 'utf8');
   } catch (err) {
-    throw new ConfigError(`cannot read config file at ${absolute}: ${(err as Error).message}`);
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT') return undefined;
+    throw new ConfigError(`cannot read ${absolute}: ${(err as Error).message}`);
   }
-  return parseConfig(text, options);
+}
+
+/** Read morph.json and .mcp.json from disk and merge into a validated config. */
+export async function loadConfig(
+  morphPath: string,
+  mcpPath: string,
+  options: LoadOptions = {},
+): Promise<MorphConfig> {
+  const morphAbs = resolvePath(morphPath);
+  let morphText: string;
+  try {
+    morphText = await readFile(morphAbs, 'utf8');
+  } catch (err) {
+    throw new ConfigError(`cannot read config file at ${morphAbs}: ${(err as Error).message}`);
+  }
+  const mcpText = await readOptional(resolvePath(mcpPath));
+  return parseConfig(morphText, mcpText, options);
 }
