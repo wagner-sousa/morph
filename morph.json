@@ -2,7 +2,8 @@
   "$schema": "./schema.json",
   "morph": {
     "version": "1.0",
-    "logLevel": "info"
+    "logLevel": "info",
+    "allowConflicts": false
   },
   "mcpServers": [
     {
@@ -12,7 +13,11 @@
       "transport": {
         "type": "stdio",
         "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/data"]
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-filesystem",
+          "/data"
+        ]
       }
     },
     {
@@ -26,7 +31,11 @@
       "transport": {
         "type": "stdio",
         "command": "npx",
-        "args": ["-y", "@anthropic/mcp-clickup", "--api-key=${CLICKUP_API_KEY}"]
+        "args": [
+          "-y",
+          "@anthropic/mcp-clickup",
+          "--api-key=${CLICKUP_API_KEY}"
+        ]
       }
     },
     {
@@ -40,6 +49,34 @@
           "Authorization": "Bearer ${BRIGHTDATA_API_KEY}"
         }
       }
+    },
+    {
+      "name": "demo",
+      "enabled": true,
+      "description": "Demo MCP over stdio (ping/users/echo tools)",
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["tsx", "src/examples/demo-mcp-server.ts"]
+      }
+    },
+    {
+      "name": "demo-http",
+      "enabled": true,
+      "description": "Demo MCP over Streamable HTTP (port 3200)",
+      "transport": {
+        "type": "http",
+        "url": "http://mcp-test-servers:3200/mcp"
+      }
+    },
+    {
+      "name": "demo-sse",
+      "enabled": true,
+      "description": "Demo MCP over SSE legacy (port 3201)",
+      "transport": {
+        "type": "sse",
+        "url": "http://mcp-test-servers:3201/sse"
+      }
     }
   ],
   "toon": {
@@ -52,7 +89,7 @@
   "webUi": {
     "enabled": true,
     "host": "0.0.0.0",
-    "port": 3100
+    "port": 3101
   },
   "health": {
     "intervalMs": 30000,

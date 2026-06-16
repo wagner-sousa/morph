@@ -1,13 +1,37 @@
 import { ofetch } from 'ofetch';
 
+export interface StdioTransport {
+  type: 'stdio';
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  cwd?: string;
+  timeoutMs?: number;
+}
+
+export interface HttpTransport {
+  type: 'http';
+  url: string;
+  headers?: Record<string, string>;
+  apiKey?: string;
+}
+
+export interface SseTransport {
+  type: 'sse';
+  url: string;
+  headers?: Record<string, string>;
+  reconnectIntervalMs?: number;
+}
+
+export type MCPTransport = StdioTransport | HttpTransport | SseTransport;
+
 export interface MCPConfig {
   name: string;
-  transport: 'stdio' | 'http' | 'sse';
   enabled: boolean;
-  command?: string;
-  args?: string[];
-  url?: string;
-  env?: Record<string, string>;
+  description?: string;
+  labels?: Record<string, string>;
+  aliases?: Record<string, string>;
+  transport: MCPTransport;
 }
 
 export interface MCPStatus {

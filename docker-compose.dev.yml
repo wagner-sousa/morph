@@ -31,6 +31,21 @@ services:
     depends_on:
       - morph
 
+  mcp-test-servers:
+    image: node:22-bookworm
+    working_dir: /app
+    ports:
+      - "3200:3200"
+      - "3201:3201"
+    volumes:
+      - ./:/app
+      - node_modules:/app/node_modules
+    command: >
+      sh -c "npx tsx src/examples/http-mcp-server.ts & npx tsx src/examples/sse-mcp-server.ts & wait"
+    environment:
+      - HTTP_MCP_PORT=3200
+      - SSE_MCP_PORT=3201
+
 volumes:
   node_modules:
   studio_node_modules:

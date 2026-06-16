@@ -138,11 +138,11 @@ export class WebServer {
       const def = req.body as Record<string, unknown>;
       const { MCPDefinitionSchema } = await import('../config/schema.js');
       const parsed = MCPDefinitionSchema.parse(def);
-      const cfg = hub.getConfig();
+      let cfg = hub.getConfig();
       if (cfg.mcpServers.some((s) => s.name === parsed.name)) {
         throw new MorphError('ALREADY_EXISTS', `MCP "${parsed.name}" already exists`);
       }
-      cfg.mcpServers.push(parsed);
+      cfg = { ...cfg, mcpServers: [...cfg.mcpServers, parsed] };
       await hub.applyConfig(cfg);
       await hub.saveConfig();
       reply.code(201);
@@ -160,8 +160,8 @@ export class WebServer {
       const cfg = hub.getConfig();
       const idx = cfg.mcpServers.findIndex((s) => s.name === name);
       if (idx === -1) throw new MorphError('MCP_NOT_FOUND', `MCP "${name}" not found`);
-      cfg.mcpServers[idx] = parsed;
-      await hub.applyConfig(cfg);
+      const next = { ...cfg, mcpServers: cfg.mcpServers.with(idx, parsed) };
+      await hub.applyConfig(next);
       await hub.saveConfig();
       return { ok: true, name };
     });
@@ -171,8 +171,8 @@ export class WebServer {
       const cfg = hub.getConfig();
       const idx = cfg.mcpServers.findIndex((s) => s.name === name);
       if (idx === -1) throw new MorphError('MCP_NOT_FOUND', `MCP "${name}" not found`);
-      cfg.mcpServers.splice(idx, 1);
-      await hub.applyConfig(cfg);
+      const next = { ...cfg, mcpServers: cfg.mcpServers.toSpliced(idx, 1) };
+      await hub.applyConfig(next);
       await hub.saveConfig();
       reply.code(204);
     });
