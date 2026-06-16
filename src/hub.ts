@@ -105,7 +105,7 @@ export class Hub extends EventEmitter {
       toolsByMcp,
       aliasesByMcp,
       allowConflicts: this.config.morph.allowConflicts,
-    });
+    }, this.config.morph.toolPrefix ?? '');
     this.emit('tools:changed');
   }
 
