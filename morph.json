@@ -13,9 +13,7 @@
       "transport": {
         "type": "stdio",
         "command": "node",
-        "args": [
-          "dist/examples/demo-mcp-server.js"
-        ]
+        "args": ["dist/examples/demo-mcp-server.js"]
       }
     },
     {
@@ -61,20 +59,6 @@
       "name": "Stripe",
       "enabled": true,
       "description": "Stripe API access",
-      "transport": {
-        "type": "http",
-        "url": "https://mcp.stripe.com"
-      }
-    }
-  ],
-        "env": {
-          "DEMO_MODE": "true"
-        }
-      }
-    },
-    {
-      "name": "Stripe",
-      "enabled": true,
       "transport": {
         "type": "http",
         "url": "https://mcp.stripe.com"

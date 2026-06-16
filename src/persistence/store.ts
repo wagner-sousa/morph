@@ -60,8 +60,8 @@ export class Store {
     try { this.db.exec(`ALTER TABLE logs ADD COLUMN toon_tokens INTEGER`); } catch { /* column exists */ }
   }
 
-  appendLog(entry: Pick<LogEntry, 'mcpName' | 'toolName' | 'level' | 'message'> & Partial<LogEntry>): void {
-    this.db
+  appendLog(entry: Pick<LogEntry, 'mcpName' | 'toolName' | 'level' | 'message'> & Partial<LogEntry>): number {
+    const info = this.db
       .prepare(
         `INSERT INTO logs (mcp_name, tool_name, level, message, input_json, output_text, raw_output, original_tokens, toon_tokens, duration_ms, tokens_saved, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`,
@@ -80,6 +80,7 @@ export class Store {
         entry.tokensSaved ?? null,
         entry.createdAt ?? null,
       );
+    return Number(info.lastInsertRowid);
   }
 
   queryLogs(filter: LogFilter = {}): LogEntry[] {

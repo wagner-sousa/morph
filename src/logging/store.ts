@@ -41,9 +41,9 @@ export class LogStore extends EventEmitter {
     this.setMaxListeners(0);
   }
 
-  append(entry: Omit<LogEntry, 'id' | 'createdAt'> & { createdAt?: string }): LogEntry {
+  append(entry: Omit<LogEntry, 'id' | 'createdAt'> & { createdAt?: string; id?: number }): LogEntry {
     const full: LogEntry = {
-      id: this.nextId++,
+      id: entry.id ?? this.nextId++,
       createdAt: entry.createdAt ?? new Date().toISOString(),
       mcpName: entry.mcpName,
       toolName: entry.toolName,

@@ -168,4 +168,29 @@ describe('Store', () => {
     expect(t.avgPercent).toBeGreaterThan(70);
     expect(t.avgPercent).toBeLessThan(75);
   });
+
+  it('appendLog returns the auto-generated SQLite row id', () => {
+    const id1 = store.appendLog({ mcpName: 'fs', toolName: 'read', level: 'info', message: 'first' });
+    const id2 = store.appendLog({ mcpName: 'fs', toolName: 'write', level: 'info', message: 'second' });
+    expect(typeof id1).toBe('number');
+    expect(id2).toBe(id1 + 1);
+    // The log stored via getLog should match the returned id
+    const log1 = store.getLog(id1);
+    expect(log1).toBeDefined();
+    expect(log1!.message).toBe('first');
+    const log2 = store.getLog(id2);
+    expect(log2).toBeDefined();
+    expect(log2!.message).toBe('second');
+  });
+
+  it('getLog with wrong id returns undefined (cross-store ID mismatch regression)', () => {
+    // Simulate scenario: LogStore has id=X but SQLite has different row for that id
+    const id = store.appendLog({ mcpName: 'fs', toolName: 'read', level: 'info', message: 'correct' });
+    const log = store.getLog(id);
+    expect(log).toBeDefined();
+    expect(log!.message).toBe('correct');
+    // Wrong id should not match
+    const wrong = store.getLog(id + 999);
+    expect(wrong).toBeUndefined();
+  });
 });

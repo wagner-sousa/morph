@@ -129,7 +129,18 @@ export class Hub extends EventEmitter {
     if (isBuiltinTool(name)) {
       const result = this.callBuiltin(name);
       const builtinConversion = this.converter.convertResult(result);
+      const builtinId = this.store.appendLog({
+        mcpName: 'system',
+        toolName: name,
+        level: 'info',
+        message: 'built-in tool called',
+        inputJson: args !== undefined ? JSON.stringify(args) : undefined,
+        outputText: JSON.stringify(builtinConversion.result),
+        durationMs: 0,
+        tokensSaved: 0,
+      });
       this.logs.append({
+        id: builtinId,
         mcpName: 'system',
         toolName: name,
         level: 'info',
@@ -149,12 +160,22 @@ export class Hub extends EventEmitter {
       mcpName = route.mcpName;
       originalName = route.originalName;
     } catch (err) {
-      // Log routing failures
-      this.logs.append({
+      const errMsg = `Tool not found: ${(err as Error).message}`;
+      const errId = this.store.appendLog({
         mcpName: 'system',
         toolName: name,
         level: 'error',
-        message: `Tool not found: ${(err as Error).message}`,
+        message: errMsg,
+        inputJson: args !== undefined ? JSON.stringify(args) : undefined,
+        durationMs: 0,
+        tokensSaved: 0,
+      });
+      this.logs.append({
+        id: errId,
+        mcpName: 'system',
+        toolName: name,
+        level: 'error',
+        message: errMsg,
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
         durationMs: 0,
         tokensSaved: 0,
@@ -164,16 +185,27 @@ export class Hub extends EventEmitter {
 
     const client = this.registry.getClient(mcpName);
     if (!client) {
-      this.logs.append({
+      const errMsg = `MCP "${mcpName}" is not available`;
+      const errId = this.store.appendLog({
         mcpName: 'system',
         toolName: name,
         level: 'error',
-        message: `MCP "${mcpName}" is not available`,
+        message: errMsg,
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
         durationMs: 0,
         tokensSaved: 0,
       });
-      throw new Error(`MCP "${mcpName}" is not available`);
+      this.logs.append({
+        id: errId,
+        mcpName: 'system',
+        toolName: name,
+        level: 'error',
+        message: errMsg,
+        inputJson: args !== undefined ? JSON.stringify(args) : undefined,
+        durationMs: 0,
+        tokensSaved: 0,
+      });
+      throw new Error(errMsg);
     }
 
     const started = performance.now();
@@ -205,7 +237,7 @@ export class Hub extends EventEmitter {
       const durationMs = Math.round(performance.now() - started);
       this.metrics.record({ mcpName, toolName: name, durationMs, tokensSaved, success }, savingsPercent);
       this.store.recordCall(mcpName, name, durationMs, tokensSaved);
-      const entry = this.logs.append({
+      const logId = this.store.appendLog({
         mcpName,
         toolName: name,
         level: success ? 'info' : 'error',
@@ -218,7 +250,20 @@ export class Hub extends EventEmitter {
         durationMs,
         tokensSaved,
       });
-      this.store.appendLog(entry);
+      this.logs.append({
+        id: logId,
+        mcpName,
+        toolName: name,
+        level: success ? 'info' : 'error',
+        message: success ? 'tool call succeeded' : 'tool call failed',
+        inputJson: args !== undefined ? JSON.stringify(args) : undefined,
+        outputText: conversionOutput,
+        rawOutput,
+        originalTokens,
+        toonTokens,
+        durationMs,
+        tokensSaved,
+      });
       this.emit('tool:called', name, mcpName, durationMs);
     }
   }
