@@ -1,6 +1,7 @@
 import { useParams, useRouter } from '@tanstack/react-router';
 import { ArrowLeft, RefreshCw, Shield, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { useDeleteMcp, useMcp, useRestartMcp } from '../hooks/useMcps';
 import { Badge } from '../components/ui/badge';
@@ -34,10 +35,9 @@ export function MCPDetail() {
   }, [oauthMsg, refetch]);
 
   const handleDelete = async () => {
-    if (confirm(`Delete MCP "${name}"?`)) {
-      await del.mutateAsync(name);
-      router.navigate({ to: '/mcps' });
-    }
+    await del.mutateAsync(name);
+    toast.success(`Deleted MCP "${name}"`);
+    router.navigate({ to: '/mcps' });
   };
 
   const handleOAuth = async () => {
@@ -133,7 +133,7 @@ export function MCPDetail() {
             <Button
               className="w-full"
               variant="outline"
-              onClick={() => restart.mutateAsync(mcp.name)}
+              onClick={() => { restart.mutateAsync(mcp.name); toast.success(`Restarted MCP "${mcp.name}"`); }}
               disabled={restart.isPending}
             >
               <RefreshCw className="h-4 w-4" />
