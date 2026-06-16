@@ -1,0 +1,88 @@
+site_name: MORPH
+site_description: MCP Optimized Response Protocol Handler — TOON gateway proxy for AI agents
+site_url: https://wagner-sousa.github.io/morph/
+repo_url: https://github.com/wagner-sousa/morph
+repo_name: wagner-sousa/morph
+edit_uri: edit/main/site/docs/
+
+nav:
+  - Home: index.md
+  - About:
+    - 01-about/000_intro.md
+    - Features: 01-about/010_features.md
+    - Demo MCPs: 01-about/020_demo-mcps.md
+    - Architecture: 01-about/030_architecture.md
+  - Usage:
+    - Quick Start: 02-usage/000_quickstart.md
+    - Configuration: 02-usage/010_configuration.md
+    - Agent Setup: 02-usage/020_agent-setup.md
+    - Transports: 02-usage/030_transports.md
+  - Development:
+    - Guide: 03-development/000_development.md
+    - Testing: 03-development/010_testing.md
+  - Reference:
+    - API: 04-reference/000_api.md
+    - CLI: 04-reference/010_cli.md
+    - To Do: 04-reference/020_todo.md
+
+theme:
+  name: material
+  icon:
+    logo: material/swap-horizontal-bold
+    repo: fontawesome/brands/github
+  palette:
+    - scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+plugins:
+  - search
+  - mermaid2:
+      arguments:
+        theme: |
+          ^(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default')$
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid_custom
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - admonition
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/wagner-sousa/morph
+  generator: false
+
+copyright: Copyright &copy; 2026 MORPH contributors
