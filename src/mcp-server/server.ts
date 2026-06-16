@@ -149,4 +149,51 @@ export class MorphMCPServer {
   async close(): Promise<void> {
     await Promise.all(this.servers.map((s) => s.close()));
   }
+
+  /** Create a JSON-RPC handler scoped to a single backend MCP's tools. */
+  createPerMcpDirectHandler(mcpName: string): (body: unknown) => Promise<{ status: number; body: string }> {
+    return async (body: unknown) => {
+      if (!body || typeof body !== 'object') {
+        return { status: 400, body: JSON.stringify({ jsonrpc: '2.0', error: { code: -32700, message: 'Parse error' }, id: null }) };
+      }
+      const msg = body as Record<string, unknown>;
+      if (msg.jsonrpc !== '2.0') {
+        return { status: 400, body: JSON.stringify({ jsonrpc: '2.0', error: { code: -32600, message: 'Invalid Request' }, id: msg.id ?? null }) };
+      }
+      if (msg.method === 'initialize') {
+        const version = getVersionInfo();
+        return {
+          status: 200,
+          body: JSON.stringify({
+            jsonrpc: '2.0', id: msg.id,
+            result: {
+              protocolVersion: LATEST_PROTOCOL_VERSION,
+              capabilities: { tools: { listChanged: true } },
+              serverInfo: { name: `morph-${mcpName}`, version: version.version },
+            },
+          }),
+        };
+      }
+      if (typeof msg.method === 'string' && msg.method.startsWith('notifications/')) {
+        return { status: 202, body: '' };
+      }
+      if (msg.method === 'tools/list') {
+        const tools = this.hub.registry.getTools(mcpName);
+        return { status: 200, body: JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { tools } }) };
+      }
+      if (msg.method === 'tools/call') {
+        const params = msg.params as { name?: string; arguments?: Record<string, unknown> } | undefined;
+        if (!params?.name) {
+          return { status: 400, body: JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32602, message: 'Invalid params: name is required' } }) };
+        }
+        try {
+          const result = await this.hub.callTool(params.name, params.arguments);
+          return { status: 200, body: JSON.stringify({ jsonrpc: '2.0', id: msg.id, result }) };
+        } catch (err) {
+          return { status: 200, body: JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { isError: true, content: [{ type: 'text', text: `MORPH error: ${(err as Error).message}` }] } }) };
+        }
+      }
+      return { status: 400, body: JSON.stringify({ jsonrpc: '2.0', id: msg.id ?? null, error: { code: -32601, message: `Method not found: ${msg.method}` } }) };
+    };
+  }
 }

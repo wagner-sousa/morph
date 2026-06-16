@@ -148,6 +148,15 @@ export class WebServer {
 
     app.get('/api/config', async () => hub.getConfig());
 
+    app.post('/api/mcp/:name', async (req, reply) => {
+      const { name } = req.params as { name: string };
+      const tools = hub.registry.getTools(name);
+      if (!tools || tools.length === 0) throw new MorphError('MCP_NOT_FOUND', `MCP "${name}" not found`);
+      const handler = this.options.mcpServer.createPerMcpDirectHandler(name);
+      const result = await handler(req.body);
+      reply.code(result.status).send(result.body);
+    });
+
     app.post('/api/config/import', async (req) => {
       const body = (await this.readImportBody(req)) as Record<string, unknown>;
       return importConfig(body);
