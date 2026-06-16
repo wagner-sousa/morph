@@ -99,7 +99,7 @@ async function runStart(flags: Flags): Promise<void> {
 
   let webServer: WebServer | undefined;
   if (config.webUi.enabled) {
-    webServer = new WebServer({ hub, logger });
+    webServer = new WebServer({ hub, logger, mcpServer });
     await webServer.start(config.webUi.host, config.webUi.port);
   }
 

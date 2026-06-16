@@ -19,10 +19,12 @@ import { MorphError } from '../utils/errors.js';
 import { registerOAuthRoutes } from './oauth-routes.js';
 import { importConfig } from '../import/importer.js';
 import type { Hub } from '../hub.js';
+import type { MorphMCPServer } from '../mcp-server/server.js';
 
 export interface WebServerOptions {
   hub: Hub;
   logger: Logger;
+  mcpServer?: MorphMCPServer;
   publicDir?: string;
 }
 
@@ -203,6 +205,28 @@ export class WebServer {
       const off = hub.logs.onLog((entry) => reply.raw.write(`data: ${JSON.stringify(entry)}\n\n`));
       req.raw.on('close', off);
     });
+
+    // MCP protocol over HTTP (direct JSON-RPC handler).
+    const mcpHandler = this.options.mcpServer?.createDirectHandler();
+    if (mcpHandler) {
+      app.post('/mcp', async (request, reply) => {
+        const body = request.body;
+        const { status, body: json } = await mcpHandler(body);
+        return reply.status(status).type('application/json').send(json);
+      });
+
+      app.get('/mcp', (request, reply) => {
+        reply.hijack();
+        const res = reply.raw;
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        });
+        const keepAlive = setInterval(() => res.write(': keepalive\n\n'), 15000);
+        request.raw.on('close', () => clearInterval(keepAlive));
+      });
+    }
   }
 
   private async readImportBody(req: FastifyRequest): Promise<unknown> {
