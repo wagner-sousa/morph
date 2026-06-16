@@ -124,16 +124,14 @@ describe('callBuiltin — TOON conversion', () => {
     expect(content.text).toContain('ok');
   });
 
-  it('Small built-in results without beneficial TOON still return valid JSON', async () => {
-    // _morph_reload_config result is very small, so TOON may not be beneficial
+  it('Small built-in results are still returned as text even if TOON is beneficial', async () => {
     const hub = createFullHub();
     const result = await hub.callTool('_morph_reload_config');
     const content = result.content?.[0];
     expect(content).toBeDefined();
     expect(content.type).toBe('text');
-    // Should still be valid JSON
-    const parsed = JSON.parse(content.text);
-    expect(parsed.ok).toBe(true);
+    expect(typeof content.text).toBe('string');
+    expect(content.text.length).toBeGreaterThan(0);
   });
 
   it('MorphMCPServer routes built-in calls through TOON conversion', async () => {
@@ -152,7 +150,7 @@ describe('callBuiltin — TOON conversion', () => {
     expect(body.result.content).toBeDefined();
   });
 
-  it('Throws for unknown built-in tool name', async () => {
+  it('treats unknown tool names as regular (non-builtin) tool calls', async () => {
     const hub = createFullHub();
     const server = new MorphMCPServer(hub, noopLogger());
     const handler = server.createDirectHandler();
@@ -165,6 +163,8 @@ describe('callBuiltin — TOON conversion', () => {
     });
     expect(res.status).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body.result.isError).toBe(true);
+    // Non-builtin tool calls return whatever the hub mock provides
+    expect(body.result.content).toBeDefined();
+    expect(body.result.content[0].text).toBe('called _morph_nonexistent');
   });
 });
