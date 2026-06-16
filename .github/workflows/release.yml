@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: Semantic Release
+    runs-on: ubuntu-latest
+    # Skip the commit semantic-release pushes back ("chore(release): ... [skip ci]").
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # PAT so the tag push triggers the Docker workflow
+          # (a tag pushed with GITHUB_TOKEN would NOT trigger other workflows).
+          token: ${{ secrets.RELEASE_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Verify build is green
+        run: |
+          npm run typecheck
+          npm test
+          npm run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Semantic Release
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
