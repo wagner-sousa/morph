@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
-import { type MCPConfig, type MCPTransport } from '../lib/api';
+import { Loader2, Plus } from 'lucide-react';
+import { api, type MCPConfig, type MCPTransport } from '../lib/api';
 import { useAddMcp, useDeleteMcp, useMcps } from '../hooks/useMcps';
 import { MCPCard } from '../components/MCPCard';
 import { Button } from '../components/ui/button';
@@ -26,6 +26,8 @@ const mcpSchema = z.object({
   command: z.string().optional(),
   args: z.string().optional(),
   url: z.string().optional(),
+  env: z.string().optional(),
+  headers: z.string().optional(),
   enabled: z.boolean().default(true),
 });
 
@@ -37,6 +39,8 @@ const defaultValues: MCPForm = {
   command: '',
   args: '',
   url: '',
+  env: '',
+  headers: '',
   enabled: true,
 };
 
@@ -45,11 +49,13 @@ function MCPFormDialog({
   onOpenChange,
   initial,
   onSubmit,
+  oauthPending,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial?: MCPForm;
   onSubmit: (data: MCPForm) => Promise<void>;
+  oauthPending: string | null;
 }) {
   const {
     register,
@@ -70,6 +76,7 @@ function MCPFormDialog({
   }, [open, initial, reset]);
 
   const handleFormSubmit = async (data: MCPForm) => {
+    if (oauthPending) return;
     await onSubmit(data);
     onOpenChange(false);
     reset(initial ?? defaultValues);
@@ -82,7 +89,9 @@ function MCPFormDialog({
           <DialogHeader>
             <DialogTitle>{initial ? 'Edit MCP' : 'Add MCP'}</DialogTitle>
             <DialogDescription>
-              Configure an MCP server backend.
+              {oauthPending
+                ? 'Waiting for OAuth authorization in your browser...'
+                : 'Configure an MCP server backend.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -115,13 +124,35 @@ function MCPFormDialog({
                   <Label htmlFor="args">Arguments</Label>
                   <Input id="args" {...register('args')} placeholder="-y @modelcontextprotocol/server-filesystem /path" />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="env">Environment Variables</Label>
+                  <textarea
+                    id="env"
+                    className="flex min-h-[80px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-sm font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
+                    {...register('env')}
+                    placeholder={"STRIPE_API_KEY=sk_test_...\nOPENAI_API_KEY=sk-..."}
+                  />
+                  <p className="text-xs text-morph-muted">One KEY=VALUE per line</p>
+                </div>
               </>
             )}
             {transport !== 'stdio' && (
-              <div className="space-y-2">
-                <Label htmlFor="url">URL</Label>
-                <Input id="url" {...register('url')} placeholder="http://..." />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="url">URL</Label>
+                  <Input id="url" {...register('url')} placeholder="http://..." />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="headers">Headers</Label>
+                  <textarea
+                    id="headers"
+                    className="flex min-h-[80px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-sm font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
+                    {...register('headers')}
+                    placeholder={"Authorization=Bearer sk_test_...\nX-Custom=value"}
+                  />
+                  <p className="text-xs text-morph-muted">One Header=Value per line</p>
+                </div>
+              </>
             )}
             <div className="flex items-center gap-2">
               <Controller
@@ -138,9 +169,15 @@ function MCPFormDialog({
               <Label htmlFor="enabled">Enabled</Label>
             </div>
           </div>
+          {oauthPending && (
+            <div className="flex items-center justify-center gap-2 py-2 text-sm text-morph-muted">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Authorizing... Complete the OAuth flow in the popup window.
+            </div>
+          )}
           <DialogFooter>
-            <Button type="submit" disabled={isSubmitting}>
-              {initial ? 'Save' : 'Add'}
+            <Button type="submit" disabled={isSubmitting || !!oauthPending}>
+              {isSubmitting ? 'Adding...' : oauthPending ? 'Waiting...' : (initial ? 'Save' : 'Add')}
             </Button>
           </DialogFooter>
         </form>
@@ -154,14 +191,91 @@ export function Mcps() {
   const addMcp = useAddMcp();
   const deleteMcp = useDeleteMcp();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [oauthAdding, setOauthAdding] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'mcp-oauth') {
+        setOauthAdding(null);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   const handleAdd = async (data: MCPForm) => {
     const transport: MCPTransport =
       data.transport === 'stdio'
-        ? { type: 'stdio', command: data.command!, args: data.args ? data.args.split(/\s+/) : [] }
-        : { type: data.transport as 'http' | 'sse', url: data.url! };
-    const payload: MCPConfig = { name: data.name, enabled: data.enabled, transport };
+        ? {
+            type: 'stdio',
+            command: data.command!,
+            args: data.args ? data.args.split(/\s+/) : [],
+            ...(data.env
+              ? {
+                  env: Object.fromEntries(
+                    data.env
+                      .split('\n')
+                      .map((l) => l.trim())
+                      .filter(Boolean)
+                      .map((l) => {
+                        const i = l.indexOf('=');
+                        return i === -1 ? [l, ''] : [l.slice(0, i), l.slice(i + 1)];
+                      }),
+                  ),
+                }
+              : {}),
+          }
+        : {
+            type: data.transport as 'http' | 'sse',
+            url: data.url!,
+            ...(data.headers
+              ? {
+                  headers: Object.fromEntries(
+                    data.headers
+                      .split('\n')
+                      .map((l) => l.trim())
+                      .filter(Boolean)
+                      .map((l) => {
+                        const i = l.indexOf('=');
+                        return i === -1 ? [l, ''] : [l.slice(0, i), l.slice(i + 1)];
+                      }),
+                  ),
+                }
+              : {}),
+          };
+    const name = data.name;
+    const payload: MCPConfig = { name, enabled: data.enabled, transport };
     await addMcp.mutateAsync(payload);
+    await new Promise<void>((resolve) => {
+      setTimeout(async () => {
+        const oauthStatus = await api.oauthStatus(name).catch(() => null);
+        if (oauthStatus?.oauthNeeded && oauthStatus.oauthUrl) {
+          setOauthAdding(name);
+          const popup = window.open(oauthStatus.oauthUrl, 'oauth', 'width=600,height=700');
+          if (popup) {
+            const timer = setInterval(async () => {
+              if (popup.closed) {
+                clearInterval(timer);
+                setOauthAdding(null);
+                resolve();
+                return;
+              }
+              const status = await api.oauthStatus(name).catch(() => null);
+              if (status?.authorized || status?.oauthHasToken) {
+                clearInterval(timer);
+                popup.close();
+                setOauthAdding(null);
+                resolve();
+              }
+            }, 1000);
+            setTimeout(() => { clearInterval(timer); setOauthAdding(null); resolve(); }, 120000);
+            return;
+          }
+          setOauthAdding(null);
+        }
+        resolve();
+      }, 1000);
+    });
   };
 
   const handleDelete = async (name: string) => {
@@ -184,7 +298,7 @@ export function Mcps() {
           </Button>
       </div>
 
-      <MCPFormDialog open={dialogOpen} onOpenChange={setDialogOpen} onSubmit={handleAdd} />
+      <MCPFormDialog open={dialogOpen} onOpenChange={setDialogOpen} onSubmit={handleAdd} oauthPending={oauthAdding} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {mcps?.map((m) => (
