@@ -139,7 +139,7 @@ async function runImport(flags: Flags): Promise<void> {
   process.stderr.write(
     `Detected: ${result.detectedFormat} — imported ${result.stats.imported}/${result.stats.total} (skipped ${result.stats.skipped})\n`,
   );
-  for (const w of result.warnings) process.stderr.write(`  ⚠️  ${w.message}\n`);
+  for (const w of result.warnings) process.stderr.write(`  [WARN] ${w.message}\n`);
 
   if (flags['dry-run']) {
     process.stdout.write(JSON.stringify(result.servers, null, 2) + '\n');
