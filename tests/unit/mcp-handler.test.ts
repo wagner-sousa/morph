@@ -161,3 +161,75 @@ describe('MorphMCPServer — createDirectHandler', () => {
     expect(body.result.content[0].text).toContain('MORPH error');
   });
 });
+
+describe('MorphMCPServer — createPerMcpDirectHandler', () => {
+  function createMockHub(tools: Tool[] = [], mcpName = 'test-mcp') {
+    const hub = new EventEmitter() as Hub;
+    hub.logger = noopLogger();
+    hub.registry = {
+      getTools: (name: string) => name === mcpName ? tools : [],
+      getClient: () => null,
+    } as unknown as Hub['registry'];
+    hub.callTool = async (name: string) => ({
+      content: [{ type: 'text', text: `called ${name}` }],
+    });
+    return hub;
+  }
+
+  it('handles initialize', async () => {
+    const hub = createMockHub();
+    const server = new MorphMCPServer(hub, noopLogger());
+    const handler = server.createPerMcpDirectHandler('test-mcp');
+    const res = await handler({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05' } });
+    expect(res.status).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.result.serverInfo.name).toBe('morph-test-mcp');
+  });
+
+  it('returns tools/list scoped to the MCP', async () => {
+    const tools: Tool[] = [{ name: 'ping', description: 'returns pong', inputSchema: { type: 'object', properties: {} } }];
+    const hub = createMockHub(tools);
+    const server = new MorphMCPServer(hub, noopLogger());
+    const handler = server.createPerMcpDirectHandler('test-mcp');
+    const res = await handler({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
+    expect(res.status).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.result.tools).toHaveLength(1);
+    expect(body.result.tools[0].name).toBe('ping');
+  });
+
+  it('routes tools/call through hub.callTool', async () => {
+    const hub = createMockHub();
+    const server = new MorphMCPServer(hub, noopLogger());
+    const handler = server.createPerMcpDirectHandler('test-mcp');
+    const res = await handler({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'ping' } });
+    expect(res.status).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.result.content[0].text).toBe('called ping');
+  });
+
+  it('returns 202 for notifications', async () => {
+    const server = new MorphMCPServer(createMockHub(), noopLogger());
+    const handler = server.createPerMcpDirectHandler('test-mcp');
+    const res = await handler({ jsonrpc: '2.0', method: 'notifications/initialized' });
+    expect(res.status).toBe(202);
+  });
+
+  it('returns parse error for invalid body', async () => {
+    const server = new MorphMCPServer(createMockHub(), noopLogger());
+    const handler = server.createPerMcpDirectHandler('test-mcp');
+    const res = await handler(null);
+    expect(res.status).toBe(400);
+    const body = JSON.parse(res.body);
+    expect(body.error.code).toBe(-32700);
+  });
+
+  it('returns invalid request for non-JSON-RPC message', async () => {
+    const server = new MorphMCPServer(createMockHub(), noopLogger());
+    const handler = server.createPerMcpDirectHandler('test-mcp');
+    const res = await handler({ jsonrpc: '1.0' });
+    expect(res.status).toBe(400);
+    const body = JSON.parse(res.body);
+    expect(body.error.code).toBe(-32600);
+  });
+});

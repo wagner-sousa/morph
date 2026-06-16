@@ -57,6 +57,7 @@ Options (start):
   --port, -p <port>     Web UI port (overrides config)
   --transport <type>    Agent transport: stdio | http (default: stdio)
   --log-level <level>   debug | info | warn | error
+  --mcp <name>          Start a stdio server scoped to a single MCP's tools
   --validate            Validate config and exit
   --version             Show version
   --help                Show help
@@ -91,6 +92,12 @@ async function runStart(flags: Flags): Promise<void> {
 
   const mcpServer = new MorphMCPServer(hub, logger);
   const transport = (flags.transport as string) ?? process.env.MORPH_TRANSPORT ?? 'stdio';
+
+  if (flags.mcp) {
+    const mcpName = flags.mcp as string;
+    logger.info({ mcp: mcpName }, 'per-MCP mode: tools available via /api/mcp/:name');
+  }
+
   if (transport === 'stdio') {
     await mcpServer.listenStdio();
   } else {
