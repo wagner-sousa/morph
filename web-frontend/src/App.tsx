@@ -6,6 +6,7 @@ import {
   createRouter,
 } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Mcps } from './pages/Mcps';
@@ -27,6 +28,7 @@ function Layout() {
       <main className="ml-56 p-6">
         <Outlet />
       </main>
+      <Toaster position="bottom-right" richColors closeButton />
     </div>
   );
 }

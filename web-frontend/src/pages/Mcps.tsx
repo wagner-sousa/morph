@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { Loader2, Plus } from 'lucide-react';
 import { api, type MCPConfig, type MCPTransport } from '../lib/api';
 import { useAddMcp, useDeleteMcp, useMcps } from '../hooks/useMcps';
@@ -245,7 +246,13 @@ export function Mcps() {
           };
     const name = data.name;
     const payload: MCPConfig = { name, enabled: data.enabled, transport };
-    await addMcp.mutateAsync(payload);
+    try {
+      await addMcp.mutateAsync(payload);
+      toast.success(`Added MCP "${name}"`);
+    } catch {
+      toast.error(`Failed to add MCP "${name}"`);
+      return;
+    }
     await new Promise<void>((resolve) => {
       setTimeout(async () => {
         const oauthStatus = await api.oauthStatus(name).catch(() => null);
@@ -279,9 +286,8 @@ export function Mcps() {
   };
 
   const handleDelete = async (name: string) => {
-    if (confirm(`Delete MCP "${name}"?`)) {
-      await deleteMcp.mutateAsync(name);
-    }
+    await deleteMcp.mutateAsync(name);
+    toast.success(`Deleted MCP "${name}"`);
   };
 
   if (isLoading) {
