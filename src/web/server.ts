@@ -152,6 +152,7 @@ export class WebServer {
       const { name } = req.params as { name: string };
       const tools = hub.registry.getTools(name);
       if (!tools || tools.length === 0) throw new MorphError('MCP_NOT_FOUND', `MCP "${name}" not found`);
+      if (!this.options.mcpServer) throw new MorphError('SERVER_ERROR', 'MCP server not available');
       const handler = this.options.mcpServer.createPerMcpDirectHandler(name);
       const result = await handler(req.body);
       reply.code(result.status).send(result.body);
