@@ -68,6 +68,7 @@ export const WebUiSchema = z
     enabled: z.boolean().default(true),
     host: z.string().default('0.0.0.0'),
     port: z.number().int().min(1).max(65535).default(3100),
+    publicUrl: z.string().url().optional(),
     auth: z
       .object({
         username: z.string(),

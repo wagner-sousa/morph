@@ -10,6 +10,8 @@ import type { Logger } from '../logging/logger.js';
 import type { MCPDefinition } from '../config/types.js';
 import { MCPNotFoundError } from '../utils/errors.js';
 import { createMCPClient } from './factory.js';
+import { OAuthStore } from './oauth-store.js';
+import { MorphOAuthProvider } from './oauth-provider.js';
 import type { ClientStatus, MCPClient, Tool } from './types.js';
 
 export interface MCPStatusSummary {
@@ -21,6 +23,9 @@ export interface MCPStatusSummary {
   latencyMs?: number;
   lastPing?: string;
   lastError?: string;
+  oauthNeeded?: boolean;
+  oauthUrl?: string;
+  oauthHasToken?: boolean;
 }
 
 interface Entry {
@@ -35,8 +40,13 @@ export type RegistryEvent = 'connected' | 'disconnected' | 'error' | 'toolListCh
 
 export class MCPClientRegistry extends EventEmitter {
   private readonly entries = new Map<string, Entry>();
+  private readonly oauthProviders = new Map<string, MorphOAuthProvider>();
 
-  constructor(private readonly logger: Logger) {
+  constructor(
+    private readonly logger: Logger,
+    readonly oauthStore?: OAuthStore,
+    private readonly oauthBaseUrl?: string,
+  ) {
     super();
   }
 
@@ -59,7 +69,11 @@ export class MCPClientRegistry extends EventEmitter {
   }
 
   private async startEntry(entry: Entry): Promise<void> {
-    const client = createMCPClient(entry.definition, { logger: this.logger });
+    const authProvider = this.getOrCreateAuthProvider(entry.definition);
+    const client = createMCPClient(entry.definition, {
+      logger: this.logger,
+      authProvider,
+    });
     entry.client = client;
     client.on('disconnected', () => this.emit('disconnected', entry.definition.name));
     client.on('error', (err) => this.emit('error', entry.definition.name, err));
@@ -80,6 +94,9 @@ export class MCPClientRegistry extends EventEmitter {
   async connect(name: string): Promise<void> {
     const entry = this.require(name);
     if (entry.client?.getStatus() === 'connected') return;
+    await entry.client?.disconnect();
+    entry.client = undefined;
+    entry.tools = [];
     await this.startEntry(entry);
   }
 
@@ -158,6 +175,9 @@ export class MCPClientRegistry extends EventEmitter {
         latencyMs: entry.latencyMs,
         lastPing: entry.lastPing,
         lastError: client?.getLastError(),
+        oauthNeeded: client?.needsOAuth?.() ?? false,
+        oauthUrl: client?.getAuthorizationUrl?.(),
+        oauthHasToken: client?.hasOAuthToken?.() ?? false,
       };
     });
   }
@@ -166,5 +186,41 @@ export class MCPClientRegistry extends EventEmitter {
     const entry = this.entries.get(name);
     if (!entry) throw new MCPNotFoundError(name);
     return entry;
+  }
+
+  private getOrCreateAuthProvider(def: MCPDefinition): MorphOAuthProvider | undefined {
+    if (def.transport.type !== 'http') return undefined;
+    if (!this.oauthStore || !this.oauthBaseUrl) return undefined;
+    let provider = this.oauthProviders.get(def.name);
+    if (!provider) {
+      provider = new MorphOAuthProvider(def.name, this.oauthStore, this.oauthBaseUrl);
+      this.oauthProviders.set(def.name, provider);
+    }
+    return provider;
+  }
+
+  getOAuthProvider(name: string): MorphOAuthProvider | undefined {
+    return this.oauthProviders.get(name);
+  }
+
+  needsOAuth(name: string): boolean {
+    const client = this.getClient(name);
+    return client?.needsOAuth?.() ?? false;
+  }
+
+  getOAuthUrl(name: string): string | undefined {
+    const client = this.getClient(name);
+    return client?.getAuthorizationUrl?.();
+  }
+
+  hasOAuthToken(name: string): boolean {
+    const client = this.getClient(name);
+    return client?.hasOAuthToken?.() ?? false;
+  }
+
+  async finishOAuth(name: string, authorizationCode: string): Promise<void> {
+    const client = this.getClient(name);
+    if (!client?.finishOAuth) throw new Error(`OAuth not available for MCP "${name}"`);
+    await client.finishOAuth(authorizationCode);
   }
 }
