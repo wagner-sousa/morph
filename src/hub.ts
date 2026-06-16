@@ -176,17 +176,23 @@ export class Hub extends EventEmitter {
     const json = (data: unknown): CallToolResult => ({
       content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
     });
+    let result: CallToolResult;
     switch (name) {
       case BUILTIN_TOOL_NAMES.status:
-        return json(this.getStatus());
+        result = json(this.getStatus());
+        break;
       case BUILTIN_TOOL_NAMES.toonStats:
-        return json(this.metrics.snapshot());
+        result = json(this.metrics.snapshot());
+        break;
       case BUILTIN_TOOL_NAMES.reloadConfig:
         void this.reloadFromDisk();
-        return json({ ok: true, message: 'config reload triggered' });
+        result = json({ ok: true, message: 'config reload triggered' });
+        break;
       default:
         throw new Error(`unknown built-in tool: ${name}`);
     }
+    const converted = this.converter.convertResult(result);
+    return converted.result;
   }
 
   getStatus(): {
