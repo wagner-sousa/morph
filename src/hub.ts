@@ -135,7 +135,9 @@ export class Hub extends EventEmitter {
         level: 'info',
         message: 'built-in tool called',
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
-        outputText: JSON.stringify(builtinConversion.result),
+        outputText: builtinConversion.result?.content?.[0]?.type === 'text'
+          ? builtinConversion.result.content[0].text
+          : JSON.stringify(builtinConversion.result),
         durationMs: 0,
         tokensSaved: 0,
       });
@@ -146,7 +148,9 @@ export class Hub extends EventEmitter {
         level: 'info',
         message: 'built-in tool called',
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
-        outputText: JSON.stringify(builtinConversion.result),
+        outputText: builtinConversion.result?.content?.[0]?.type === 'text'
+          ? builtinConversion.result.content[0].text
+          : JSON.stringify(builtinConversion.result),
         durationMs: 0,
         tokensSaved: 0,
       });
@@ -227,7 +231,9 @@ export class Hub extends EventEmitter {
         toonTokens = conversion.savings.toonTokens;
       }
       if (conversion.result?.content) {
-        conversionOutput = JSON.stringify(conversion.result);
+        conversionOutput = conversion.result.content[0]?.type === 'text'
+          ? conversion.result.content[0].text
+          : JSON.stringify(conversion.result);
       }
       return conversion.result;
     } catch (err) {

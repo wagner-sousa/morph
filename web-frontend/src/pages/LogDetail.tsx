@@ -37,8 +37,8 @@ export function LogDetail() {
   if (isLoading) return <div className="p-6">Loading...</div>;
   if (error || !data) return <div className="p-6 text-red-500">Log not found.</div>;
 
-  const jsonTokens = estimateTokens(data.rawOutput);
-  const toonTokens = estimateTokens(data.outputText);
+  const jsonTokens = data.originalTokens ?? estimateTokens(data.rawOutput);
+  const toonTokens = data.toonTokens ?? estimateTokens(data.outputText);
   const savedTokens = jsonTokens - toonTokens;
   const savingsPct = jsonTokens > 0 ? ((savedTokens / jsonTokens) * 100).toFixed(1) : '0.0';
 
