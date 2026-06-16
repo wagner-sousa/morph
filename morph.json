@@ -49,6 +49,34 @@
           "Authorization": "Bearer ${BRIGHTDATA_API_KEY}"
         }
       }
+    },
+    {
+      "name": "demo",
+      "enabled": true,
+      "description": "Demo MCP over stdio (ping/users/echo tools)",
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["tsx", "src/examples/demo-mcp-server.ts"]
+      }
+    },
+    {
+      "name": "demo-http",
+      "enabled": true,
+      "description": "Demo MCP over Streamable HTTP (port 3200)",
+      "transport": {
+        "type": "http",
+        "url": "http://mcp-test-servers:3200/mcp"
+      }
+    },
+    {
+      "name": "demo-sse",
+      "enabled": true,
+      "description": "Demo MCP over SSE legacy (port 3201)",
+      "transport": {
+        "type": "sse",
+        "url": "http://mcp-test-servers:3201/sse"
+      }
     }
   ],
   "toon": {
