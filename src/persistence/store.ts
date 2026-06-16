@@ -185,6 +185,19 @@ export class Store {
       .get(...params) as { calls: number; tokensSaved: number; durationMs: number };
   }
 
+  getTotalizers(): { jsonTokens: number; toonTokens: number; tokensSaved: number; avgPercent: number } {
+    return this.db
+      .prepare(`SELECT
+        COALESCE(SUM(original_tokens), 0) AS jsonTokens,
+        COALESCE(SUM(toon_tokens), 0) AS toonTokens,
+        COALESCE(SUM(original_tokens - toon_tokens), 0) AS tokensSaved,
+        CASE WHEN SUM(original_tokens) > 0
+          THEN ROUND(((SUM(original_tokens) - SUM(toon_tokens)) * 100.0 / SUM(original_tokens)), 1)
+          ELSE 0 END AS avgPercent
+      FROM logs`)
+      .get() as { jsonTokens: number; toonTokens: number; tokensSaved: number; avgPercent: number };
+  }
+
   close(): void {
     this.db.close();
   }

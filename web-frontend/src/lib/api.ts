@@ -115,4 +115,5 @@ export const api = {
   oauthCallback: (name: string, code: string) =>
     fetch<void>(`/mcps/${encodeURIComponent(name)}/oauth/callback?code=${encodeURIComponent(code)}`),
   callTotals: (since?: string) => fetch<{ calls: number; tokensSaved: number; durationMs: number }>(`/calls/totals${since ? `?since=${since}` : ''}`),
+  callTotalizers: () => fetch<{ jsonTokens: number; toonTokens: number; tokensSaved: number; avgPercent: number }>('/calls/totalizers'),
 };
