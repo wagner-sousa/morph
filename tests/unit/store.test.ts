@@ -149,4 +149,23 @@ describe('Store', () => {
     expect(log.originalTokens).toBeUndefined();
     expect(log.toonTokens).toBeUndefined();
   });
+
+  it('getTotalizers returns zeros for empty store', () => {
+    const t = store.getTotalizers();
+    expect(t.jsonTokens).toBe(0);
+    expect(t.toonTokens).toBe(0);
+    expect(t.tokensSaved).toBe(0);
+    expect(t.avgPercent).toBe(0);
+  });
+
+  it('getTotalizers returns aggregated values across logs', () => {
+    store.appendLog({ mcpName: 'fs', toolName: 'read', level: 'info', message: 'ok', originalTokens: 100, toonTokens: 30 });
+    store.appendLog({ mcpName: 'fs', toolName: 'write', level: 'info', message: 'ok', originalTokens: 200, toonTokens: 50 });
+    const t = store.getTotalizers();
+    expect(t.jsonTokens).toBe(300);
+    expect(t.toonTokens).toBe(80);
+    expect(t.tokensSaved).toBe(220);
+    expect(t.avgPercent).toBeGreaterThan(70);
+    expect(t.avgPercent).toBeLessThan(75);
+  });
 });

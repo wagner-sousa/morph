@@ -126,6 +126,8 @@ export class WebServer {
       return hub.store.getCallTotals(q.since);
     });
 
+    app.get('/api/calls/totalizers', async () => hub.store.getTotalizers());
+
     app.get('/api/logs', async (req) => {
       const q = req.query as Record<string, string | undefined>;
       return hub.logs.query({

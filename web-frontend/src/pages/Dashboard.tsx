@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { type LogEntry, type MCPStatus, type Stats, api } from '../lib/api';
 import { useWebSocket, type WsMessage } from '../lib/ws';
 import { LogStream } from '../components/LogStream';
@@ -11,19 +12,22 @@ export function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [version, setVersion] = useState('');
+  const [totalizers, setTotalizers] = useState<{ jsonTokens: number; toonTokens: number; tokensSaved: number; avgPercent: number } | null>(null);
 
   const refresh = async () => {
     try {
-      const [m, s, l, v] = await Promise.all([
+      const [m, s, l, v, t] = await Promise.all([
         api.mcps(),
         api.stats(),
         api.logs(),
         api.version(),
+        api.callTotalizers(),
       ]);
       setMcps(m);
       setStats(s);
       setLogs(l);
       setVersion(v.version);
+      setTotalizers(t);
     } catch {
       /* backend not ready */
     }
@@ -45,6 +49,16 @@ export function Dashboard() {
   const online = mcps.filter((m) => m.status === 'connected').length;
   const tools = mcps.reduce((n, m) => n + m.toolCount, 0);
 
+  const handleDelete = async (name: string) => {
+    try {
+      await api.deleteMcp(name);
+      toast.success(`Deleted MCP "${name}"`);
+      void refresh();
+    } catch {
+      toast.error(`Failed to delete MCP "${name}"`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-baseline justify-between">
@@ -52,7 +66,7 @@ export function Dashboard() {
         <span className="text-sm text-morph-muted">v{version}</span>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-morph-muted font-normal">MCPs Online</CardTitle>
@@ -92,6 +106,19 @@ export function Dashboard() {
             </p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-morph-muted font-normal">JSON → TOON</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {totalizers?.jsonTokens ?? 0} → {totalizers?.toonTokens ?? 0}
+            </div>
+            <p className="text-xs text-morph-muted mt-1">
+              saved {totalizers?.tokensSaved ?? 0} tokens ({totalizers?.avgPercent ?? 0}%)
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <TOONStats stats={stats ?? undefined} />
@@ -100,7 +127,7 @@ export function Dashboard() {
         <h2 className="text-lg font-semibold mb-3">MCP Servers</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {mcps.map((m) => (
-            <MCPCard key={m.name} mcp={m} onRestart={() => {}} />
+            <MCPCard key={m.name} mcp={m} onRestart={() => {}} onDelete={handleDelete} />
           ))}
           {mcps.length === 0 && (
             <p className="text-sm text-morph-muted col-span-full">No MCP servers configured.</p>
