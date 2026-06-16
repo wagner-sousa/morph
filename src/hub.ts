@@ -139,12 +139,18 @@ export class Hub extends EventEmitter {
     let tokensSaved = 0;
     let savingsPercent = 0;
     let conversionOutput: string | undefined;
+    let rawOutput: string | undefined;
+    let originalTokens: number | undefined;
+    let toonTokens: number | undefined;
     try {
       const raw = await client.callTool(originalName, args);
+      rawOutput = raw.content?.[0]?.type === 'text' ? raw.content[0].text : JSON.stringify(raw);
       const conversion = this.converter.convertResult(raw);
       if (conversion.savings) {
         tokensSaved = conversion.savings.originalTokens - conversion.savings.toonTokens;
         savingsPercent = conversion.savings.percent;
+        originalTokens = conversion.savings.originalTokens;
+        toonTokens = conversion.savings.toonTokens;
       }
       if (conversion.result?.content) {
         conversionOutput = JSON.stringify(conversion.result);
@@ -164,6 +170,9 @@ export class Hub extends EventEmitter {
         message: success ? 'tool call succeeded' : 'tool call failed',
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
         outputText: conversionOutput,
+        rawOutput,
+        originalTokens,
+        toonTokens,
         durationMs,
         tokensSaved,
       });

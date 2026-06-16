@@ -17,6 +17,9 @@ export interface LogEntry {
   message: string;
   inputJson?: string;
   outputText?: string;
+  rawOutput?: string;
+  originalTokens?: number;
+  toonTokens?: number;
   durationMs?: number;
   tokensSaved?: number;
   createdAt: string; // ISO 8601

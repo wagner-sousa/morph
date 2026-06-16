@@ -109,4 +109,44 @@ describe('Store', () => {
     expect(totals.calls).toBe(0);
     expect(totals.tokensSaved).toBe(0);
   });
+
+  it('stores and retrieves raw_output, original_tokens, toon_tokens via appendLog', () => {
+    store.appendLog({
+      mcpName: 'fs',
+      toolName: 'read',
+      level: 'info',
+      message: 'ok',
+      rawOutput: '{"result":"data"}',
+      originalTokens: 10,
+      toonTokens: 3,
+    });
+    const logs = store.queryLogs();
+    expect(logs[0].rawOutput).toBe('{"result":"data"}');
+    expect(logs[0].originalTokens).toBe(10);
+    expect(logs[0].toonTokens).toBe(3);
+  });
+
+  it('getLog returns new fields (rawOutput, originalTokens, toonTokens)', () => {
+    store.appendLog({
+      mcpName: 'fs',
+      toolName: 'read',
+      level: 'info',
+      message: 'entry',
+      rawOutput: '{"x":1}',
+      originalTokens: 5,
+      toonTokens: 2,
+    });
+    const log = store.getLog(store.queryLogs()[0].id);
+    expect(log?.rawOutput).toBe('{"x":1}');
+    expect(log?.originalTokens).toBe(5);
+    expect(log?.toonTokens).toBe(2);
+  });
+
+  it('new fields are undefined when not provided', () => {
+    store.appendLog({ mcpName: 'fs', toolName: 't', level: 'info', message: 'no extras' });
+    const log = store.queryLogs()[0];
+    expect(log.rawOutput).toBeUndefined();
+    expect(log.originalTokens).toBeUndefined();
+    expect(log.toonTokens).toBeUndefined();
+  });
 });

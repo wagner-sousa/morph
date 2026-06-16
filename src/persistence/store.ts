@@ -55,13 +55,16 @@ export class Store {
     // Migration: add columns to existing tables (ignore if already present).
     try { this.db.exec(`ALTER TABLE logs ADD COLUMN input_json TEXT`); } catch { /* column exists */ }
     try { this.db.exec(`ALTER TABLE logs ADD COLUMN output_text TEXT`); } catch { /* column exists */ }
+    try { this.db.exec(`ALTER TABLE logs ADD COLUMN raw_output TEXT`); } catch { /* column exists */ }
+    try { this.db.exec(`ALTER TABLE logs ADD COLUMN original_tokens INTEGER`); } catch { /* column exists */ }
+    try { this.db.exec(`ALTER TABLE logs ADD COLUMN toon_tokens INTEGER`); } catch { /* column exists */ }
   }
 
   appendLog(entry: Pick<LogEntry, 'mcpName' | 'toolName' | 'level' | 'message'> & Partial<LogEntry>): void {
     this.db
       .prepare(
-        `INSERT INTO logs (mcp_name, tool_name, level, message, input_json, output_text, duration_ms, tokens_saved, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`,
+        `INSERT INTO logs (mcp_name, tool_name, level, message, input_json, output_text, raw_output, original_tokens, toon_tokens, duration_ms, tokens_saved, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`,
       )
       .run(
         entry.mcpName,
@@ -70,6 +73,9 @@ export class Store {
         entry.message,
         entry.inputJson ?? null,
         entry.outputText ?? null,
+        entry.rawOutput ?? null,
+        entry.originalTokens ?? null,
+        entry.toonTokens ?? null,
         entry.durationMs ?? null,
         entry.tokensSaved ?? null,
         entry.createdAt ?? null,
@@ -104,6 +110,9 @@ export class Store {
       message: r.message as string,
       inputJson: (r.input_json as string) ?? undefined,
       outputText: (r.output_text as string) ?? undefined,
+      rawOutput: (r.raw_output as string) ?? undefined,
+      originalTokens: (r.original_tokens as number) ?? undefined,
+      toonTokens: (r.toon_tokens as number) ?? undefined,
       durationMs: (r.duration_ms as number) ?? undefined,
       tokensSaved: (r.tokens_saved as number) ?? undefined,
       createdAt: r.created_at as string,
@@ -156,6 +165,9 @@ export class Store {
       message: row.message as string,
       inputJson: (row.input_json as string) ?? undefined,
       outputText: (row.output_text as string) ?? undefined,
+      rawOutput: (row.raw_output as string) ?? undefined,
+      originalTokens: (row.original_tokens as number) ?? undefined,
+      toonTokens: (row.toon_tokens as number) ?? undefined,
       durationMs: (row.duration_ms as number) ?? undefined,
       tokensSaved: (row.tokens_saved as number) ?? undefined,
       createdAt: row.created_at as string,
