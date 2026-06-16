@@ -90,3 +90,84 @@ describe('config loader', () => {
     expect(() => parseConfig(m, mcp, { env: {} })).toThrow(/MISSING_CMD/);
   });
 });
+
+describe('dedicated MORPH_* env overrides', () => {
+  it('overrides each morph.json setting from its env var', () => {
+    const [m, mcp] = texts({});
+    const cfg = parseConfig(m, mcp, {
+      env: {
+        MORPH_LOG_LEVEL: 'debug',
+        MORPH_ALLOW_CONFLICTS: 'true',
+        MORPH_TOOL_PREFIX: '{name}_',
+        MORPH_WEB_ENABLED: 'false',
+        MORPH_WEB_HOST: '127.0.0.1',
+        MORPH_WEB_PORT: '4000',
+        MORPH_WEB_PUBLIC_URL: 'http://example.com',
+        MORPH_TOON_AUTO_CONVERT: 'no',
+        MORPH_TOON_DELIMITER: 'tab',
+        MORPH_TOON_INDENT: '4',
+        MORPH_TOON_FLATTEN_DEPTH: '2',
+        MORPH_TOON_THRESHOLD: '50',
+        MORPH_HEALTH_INTERVAL_MS: '1000',
+        MORPH_HEALTH_TIMEOUT_MS: '2000',
+        MORPH_HEALTH_MAX_RETRIES: '7',
+      },
+    });
+    expect(cfg.morph.logLevel).toBe('debug');
+    expect(cfg.morph.allowConflicts).toBe(true);
+    expect(cfg.morph.toolPrefix).toBe('{name}_');
+    expect(cfg.webUi.enabled).toBe(false);
+    expect(cfg.webUi.host).toBe('127.0.0.1');
+    expect(cfg.webUi.port).toBe(4000);
+    expect(cfg.webUi.publicUrl).toBe('http://example.com');
+    expect(cfg.toon.autoConvert).toBe(false);
+    expect(cfg.toon.delimiter).toBe('tab');
+    expect(cfg.toon.indent).toBe(4);
+    expect(cfg.toon.flattenDepth).toBe(2);
+    expect(cfg.toon.threshold).toBe(50);
+    expect(cfg.health.intervalMs).toBe(1000);
+    expect(cfg.health.timeoutMs).toBe(2000);
+    expect(cfg.health.maxRetries).toBe(7);
+  });
+
+  it('env wins over the JSON value, JSON wins over default', () => {
+    const [m, mcp] = texts({}, { webUi: { port: 5000 }, morph: { logLevel: 'warn' } });
+    // JSON value when no env override
+    expect(parseConfig(m, mcp, { env: {} }).webUi.port).toBe(5000);
+    expect(parseConfig(m, mcp, { env: {} }).morph.logLevel).toBe('warn');
+    // env overrides the JSON value
+    const cfg = parseConfig(m, mcp, { env: { MORPH_WEB_PORT: '6000' } });
+    expect(cfg.webUi.port).toBe(6000);
+    expect(cfg.morph.logLevel).toBe('warn');
+  });
+
+  it('accepts common boolean spellings', () => {
+    const [m, mcp] = texts({});
+    for (const v of ['true', '1', 'yes', 'on']) {
+      expect(parseConfig(m, mcp, { env: { MORPH_WEB_ENABLED: v } }).webUi.enabled).toBe(true);
+    }
+    for (const v of ['false', '0', 'no', 'off']) {
+      expect(parseConfig(m, mcp, { env: { MORPH_WEB_ENABLED: v } }).webUi.enabled).toBe(false);
+    }
+  });
+
+  it('ignores empty-string env vars', () => {
+    const [m, mcp] = texts({}, { webUi: { port: 5000 } });
+    expect(parseConfig(m, mcp, { env: { MORPH_WEB_PORT: '' } }).webUi.port).toBe(5000);
+  });
+
+  it('rejects invalid boolean, integer and enum env values', () => {
+    const [m, mcp] = texts({});
+    expect(() => parseConfig(m, mcp, { env: { MORPH_WEB_ENABLED: 'maybe' } })).toThrowError(ConfigError);
+    expect(() => parseConfig(m, mcp, { env: { MORPH_WEB_PORT: 'abc' } })).toThrowError(ConfigError);
+    expect(() => parseConfig(m, mcp, { env: { MORPH_TOON_DELIMITER: 'xml' } })).toThrowError(ConfigError);
+  });
+
+  it('does not apply dedicated overrides to .mcp.json servers', () => {
+    const [m, mcp] = texts({ api: { type: 'http', url: 'https://x/mcp' } });
+    const cfg = parseConfig(m, mcp, { env: { MORPH_WEB_HOST: '10.0.0.1' } });
+    // server entries are untouched by MORPH_* overrides
+    expect(cfg.mcpServers[0].transport.type).toBe('http');
+    expect(cfg.webUi.host).toBe('10.0.0.1');
+  });
+});

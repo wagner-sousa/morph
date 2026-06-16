@@ -50,6 +50,73 @@ export function validateConfig(raw: unknown): MorphConfig {
   return parseWith(MorphConfigSchema, raw, 'configuration');
 }
 
+/** Coerce a `${VAR}`-style env string to boolean. Throws on unrecognized values. */
+function envBool(name: string, raw: string): boolean {
+  const v = raw.trim().toLowerCase();
+  if (['true', '1', 'yes', 'on'].includes(v)) return true;
+  if (['false', '0', 'no', 'off'].includes(v)) return false;
+  throw new ConfigError(`invalid boolean for ${name}: "${raw}" (use true/false)`);
+}
+
+/** Coerce an env string to integer. Throws when not a finite integer. */
+function envInt(name: string, raw: string): number {
+  const n = Number(raw);
+  if (!Number.isInteger(n)) throw new ConfigError(`invalid integer for ${name}: "${raw}"`);
+  return n;
+}
+
+/**
+ * Apply dedicated `MORPH_*` environment overrides onto a merged config.
+ *
+ * Precedence: these win over JSON values but are themselves overridden by CLI
+ * flags (applied later in index.ts). Only variables that are *set* take effect.
+ * The result is re-validated so invalid enum/range values fail with a clear
+ * message instead of silently corrupting the config.
+ *
+ * Note: `.mcp.json` servers are intentionally not covered here — their dynamic,
+ * per-server shape is parameterized via `${VAR}` interpolation instead.
+ */
+export function applyEnvOverrides(config: MorphConfig, env: NodeJS.ProcessEnv): MorphConfig {
+  const next: MorphConfig = {
+    ...config,
+    morph: { ...config.morph },
+    toon: { ...config.toon },
+    webUi: { ...config.webUi },
+    health: { ...config.health },
+  };
+
+  const set = (name: string, apply: (raw: string) => void): void => {
+    const raw = env[name];
+    if (raw !== undefined && raw !== '') apply(raw);
+  };
+
+  // morph.*
+  set('MORPH_LOG_LEVEL', (v) => (next.morph.logLevel = v as MorphConfig['morph']['logLevel']));
+  set('MORPH_ALLOW_CONFLICTS', (v) => (next.morph.allowConflicts = envBool('MORPH_ALLOW_CONFLICTS', v)));
+  set('MORPH_TOOL_PREFIX', (v) => (next.morph.toolPrefix = v));
+
+  // webUi.*
+  set('MORPH_WEB_ENABLED', (v) => (next.webUi.enabled = envBool('MORPH_WEB_ENABLED', v)));
+  set('MORPH_WEB_HOST', (v) => (next.webUi.host = v));
+  set('MORPH_WEB_PORT', (v) => (next.webUi.port = envInt('MORPH_WEB_PORT', v)));
+  set('MORPH_WEB_PUBLIC_URL', (v) => (next.webUi.publicUrl = v));
+
+  // toon.*
+  set('MORPH_TOON_AUTO_CONVERT', (v) => (next.toon.autoConvert = envBool('MORPH_TOON_AUTO_CONVERT', v)));
+  set('MORPH_TOON_DELIMITER', (v) => (next.toon.delimiter = v as MorphConfig['toon']['delimiter']));
+  set('MORPH_TOON_INDENT', (v) => (next.toon.indent = envInt('MORPH_TOON_INDENT', v)));
+  set('MORPH_TOON_FLATTEN_DEPTH', (v) => (next.toon.flattenDepth = envInt('MORPH_TOON_FLATTEN_DEPTH', v)));
+  set('MORPH_TOON_THRESHOLD', (v) => (next.toon.threshold = envInt('MORPH_TOON_THRESHOLD', v)));
+
+  // health.*
+  set('MORPH_HEALTH_INTERVAL_MS', (v) => (next.health.intervalMs = envInt('MORPH_HEALTH_INTERVAL_MS', v)));
+  set('MORPH_HEALTH_TIMEOUT_MS', (v) => (next.health.timeoutMs = envInt('MORPH_HEALTH_TIMEOUT_MS', v)));
+  set('MORPH_HEALTH_MAX_RETRIES', (v) => (next.health.maxRetries = envInt('MORPH_HEALTH_MAX_RETRIES', v)));
+
+  // Re-validate so bad enum/range values (e.g. an unknown delimiter) fail loudly.
+  return validateConfig(next);
+}
+
 /**
  * Resolve ${ENV_VAR} references across the .mcp.json server map. Missing
  * variables are only fatal for *enabled* servers — placeholders inside disabled
@@ -102,7 +169,8 @@ export function parseConfig(
       ) as Record<string, Entry>)
     : serversRecord;
 
-  return validateConfig({ ...morphFile, mcpServers: toMcpDefinitions(serversResolved) });
+  const merged = validateConfig({ ...morphFile, mcpServers: toMcpDefinitions(serversResolved) });
+  return resolveEnv ? applyEnvOverrides(merged, options.env ?? process.env) : merged;
 }
 
 export interface SaveOptions {

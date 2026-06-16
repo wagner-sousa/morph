@@ -126,6 +126,43 @@ demo stack.
 
 See [Configuration](https://wagner-sousa.github.io/morph/02-usage/010_configuration/) for the complete reference.
 
+### Configuration via environment (Docker)
+
+Every `morph.json` setting can be overridden by a dedicated `MORPH_*` variable —
+no need to edit the JSON in a container. Precedence:
+
+```text
+CLI flag  >  MORPH_* env var  >  morph.json value  >  built-in default
+```
+
+`.mcp.json` server secrets stay as `${VAR}` placeholders (resolved from env).
+Copy `.env.example` to `.env` to see every variable; the most common:
+
+| Variable | morph.json field | Default |
+|----------|------------------|---------|
+| `MORPH_LOG_LEVEL` | `morph.logLevel` | `info` |
+| `MORPH_WEB_ENABLED` / `MORPH_WEB_HOST` / `MORPH_WEB_PORT` | `webUi.*` | `true` / `0.0.0.0` / `3100` |
+| `MORPH_TOON_AUTO_CONVERT` / `MORPH_TOON_DELIMITER` / `MORPH_TOON_INDENT` / `MORPH_TOON_FLATTEN_DEPTH` / `MORPH_TOON_THRESHOLD` | `toon.*` | see schema |
+| `MORPH_HEALTH_INTERVAL_MS` / `MORPH_HEALTH_TIMEOUT_MS` / `MORPH_HEALTH_MAX_RETRIES` | `health.*` | `30000` / `5000` / `3` |
+| `MORPH_ALLOW_CONFLICTS` / `MORPH_TOOL_PREFIX` | `morph.*` | `false` / `` |
+
+### Single data folder
+
+All persisted state lives under one directory (default `./data`, set by
+`MORPH_DATA_DIR`) so Docker needs a single volume:
+
+```text
+./data/
+├── morph.json    # config (fallback: ./morph.json)
+├── .mcp.json     # servers (fallback: ./.mcp.json)
+├── morph.db      # SQLite (+ -wal, -shm) and oauth-sessions.json
+└── logs/morph.log   # only when MORPH_LOG_FILE is set
+```
+
+`docker-compose.yml` mounts `./data:/app/data` and runs the container as the
+host `UID:GID` (set in `.env`, default `1000:1000`) so files in `./data` stay
+owned by your user. Create the folder before the first `up`: `mkdir -p data`.
+
 ## Agent Setup
 
 Add MORPH as the **only** MCP server in your agent config:

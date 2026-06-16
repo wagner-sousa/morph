@@ -7,9 +7,11 @@
  *   import  import MCP configs from other tools
  */
 import { readFile, writeFile } from 'node:fs/promises';
-import { resolve as resolvePath, dirname, basename } from 'node:path';
+import { resolve as resolvePath } from 'node:path';
+import { join } from 'node:path';
 import { createLogger } from './logging/logger.js';
 import { loadConfig } from './config/loader.js';
+import { resolvePaths } from './config/paths.js';
 import { getVersionInfo } from './utils/version.js';
 import { Hub } from './hub.js';
 import { MorphMCPServer } from './mcp-server/server.js';
@@ -68,27 +70,29 @@ Options (import):
   --format <format>     claude | vscode | auto (default)
   --merge <path>        Merge result into an existing .mcp.json
   --dry-run             Print result without writing
+
+Environment (override morph.json; CLI flags win over env):
+  MORPH_DATA_DIR        Single data dir for db/logs/config (default ./data)
+  MORPH_LOG_LEVEL       debug | info | warn | error
+  MORPH_LOG_FILE        When set, also write logs to <data>/logs/morph.log
+  MORPH_LOG_DIR         Override the log directory
+  MORPH_WEB_ENABLED     true | false
+  MORPH_WEB_HOST        Web UI bind host
+  MORPH_WEB_PORT        Web UI port
+  MORPH_WEB_PUBLIC_URL  Public URL advertised by the Web UI
+  MORPH_ALLOW_CONFLICTS true | false
+  MORPH_TOOL_PREFIX     Prefix template for exposed tool names
+  MORPH_TOON_*          AUTO_CONVERT, DELIMITER, INDENT, FLATTEN_DEPTH, THRESHOLD
+  MORPH_HEALTH_*        INTERVAL_MS, TIMEOUT_MS, MAX_RETRIES
+  MORPH_CONFIG          Explicit morph.json path (else <data>/morph.json or ./morph.json)
+  MORPH_MCP_CONFIG      Explicit .mcp.json path (else sibling of morph.json)
 `;
 
-/**
- * Derive the .mcp.json path: explicit flag/env wins, otherwise a sibling of the
- * morph config — `morph<suffix>.json` → `.mcp<suffix>.json` in the same folder.
- */
-function resolveMcpConfigPath(flags: Flags, configPath: string): string {
-  const explicit = (flags['mcp-config'] as string) ?? process.env.MORPH_MCP_CONFIG;
-  if (explicit) return resolvePath(explicit);
-  const dir = dirname(configPath);
-  const base = basename(configPath);
-  const m = base.match(/^morph(.*)\.json$/);
-  const sibling = m ? `.mcp${m[1]}.json` : '.mcp.json';
-  return resolvePath(dir, sibling);
-}
-
 async function runStart(flags: Flags): Promise<void> {
-  const configPath = resolvePath(
-    (flags.config as string) ?? process.env.MORPH_CONFIG ?? './morph.json',
-  );
-  const mcpPath = resolveMcpConfigPath(flags, configPath);
+  const { dataDir, configPath, mcpPath, logDir } = resolvePaths({
+    configFlag: flags.config as string | undefined,
+    mcpFlag: flags['mcp-config'] as string | undefined,
+  });
 
   if (flags.validate) {
     await loadConfig(configPath, mcpPath);
@@ -100,8 +104,12 @@ async function runStart(flags: Flags): Promise<void> {
   if (flags['log-level']) config.morph.logLevel = flags['log-level'] as LogLevel;
   if (flags.port) config.webUi.port = Number(flags.port);
 
-  const logger = createLogger(config.morph.logLevel, false);
-  const dataDir = process.env.MORPH_DATA_DIR ?? './data';
+  // Optional JSON log file inside the data dir (off unless MORPH_LOG_FILE is set).
+  const fileLog =
+    process.env.MORPH_LOG_FILE && process.env.MORPH_LOG_FILE !== 'false'
+      ? { path: join(logDir, 'morph.log') }
+      : undefined;
+  const logger = createLogger(config.morph.logLevel, false, fileLog);
 
   const hub = new Hub({ config, configPath, mcpPath, logger, dataDir });
   await hub.start();
