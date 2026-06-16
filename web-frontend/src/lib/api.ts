@@ -42,6 +42,18 @@ export interface MCPStatus {
   toolCount: number;
   latencyMs?: number;
   lastError?: string;
+  oauthNeeded?: boolean;
+  oauthUrl?: string;
+  oauthHasToken?: boolean;
+}
+
+export interface OAuthStatus {
+  name: string;
+  transport: string;
+  oauthNeeded: boolean;
+  oauthUrl: string | null;
+  oauthHasToken: boolean;
+  authorized: boolean;
 }
 
 export interface Stats {
@@ -85,4 +97,10 @@ export const api = {
   config: () => fetch<{ mcps: MCPConfig[] }>('/config'),
   updateConfig: (cfg: { mcps: MCPConfig[] }) =>
     fetch<void>('/config', { method: 'PUT', body: cfg }),
+  oauthStatus: (name: string) =>
+    fetch<OAuthStatus>(`/mcps/${encodeURIComponent(name)}/oauth/status`),
+  oauthStart: (name: string) =>
+    fetch<{ authorized: boolean; authorizationUrl?: string }>(`/mcps/${encodeURIComponent(name)}/oauth/start`),
+  oauthCallback: (name: string, code: string) =>
+    fetch<void>(`/mcps/${encodeURIComponent(name)}/oauth/callback?code=${encodeURIComponent(code)}`),
 };
