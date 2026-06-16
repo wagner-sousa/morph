@@ -20,9 +20,10 @@ interface MCPCardProps {
   onDelete?: (name: string) => void;
   onRestart?: (name: string) => void;
   onTools?: (name: string) => void;
+  onEdit?: (name: string) => void;
 }
 
-export function MCPCard({ mcp, onDelete, onRestart, onTools }: MCPCardProps) {
+export function MCPCard({ mcp, onDelete, onRestart, onTools, onEdit }: MCPCardProps) {
   const needsOAuth = mcp.oauthNeeded && !mcp.oauthHasToken;
 
   const handleOAuth = async () => {
@@ -41,7 +42,7 @@ export function MCPCard({ mcp, onDelete, onRestart, onTools }: MCPCardProps) {
         <Badge variant={statusVariant(mcp.status)}>{mcp.status}</Badge>
       </CardHeader>
       <CardContent className="flex flex-col h-full">
-        <div className="flex-1 text-xs text-morph-muted space-y-1">
+        <div className="flex-1 text-xs text-morph-muted space-y-1 cursor-pointer" onClick={() => onEdit?.(mcp.name)}>
           <div>Transport: {mcp.transport}</div>
           <div>Tools: {mcp.toolCount}</div>
           <div>Latency: {mcp.latencyMs != null ? `${mcp.latencyMs}ms` : '—'}</div>
