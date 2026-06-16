@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
-import { type MCPConfig } from '../lib/api';
+import { type MCPConfig, type MCPTransport } from '../lib/api';
 import { useAddMcp, useDeleteMcp, useMcps } from '../hooks/useMcps';
 import { MCPCard } from '../components/MCPCard';
 import { Button } from '../components/ui/button';
@@ -156,14 +156,11 @@ export function Mcps() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleAdd = async (data: MCPForm) => {
-    const payload: MCPConfig = {
-      name: data.name,
-      transport: data.transport,
-      enabled: data.enabled,
-      command: data.command || undefined,
-      args: data.args ? data.args.split(/\s+/) : undefined,
-      url: data.url || undefined,
-    };
+    const transport: MCPTransport =
+      data.transport === 'stdio'
+        ? { type: 'stdio', command: data.command!, args: data.args ? data.args.split(/\s+/) : [] }
+        : { type: data.transport as 'http' | 'sse', url: data.url! };
+    const payload: MCPConfig = { name: data.name, enabled: data.enabled, transport };
     await addMcp.mutateAsync(payload);
   };
 
