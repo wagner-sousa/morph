@@ -1,5 +1,6 @@
 import http from 'node:http';
 import { URL } from 'node:url';
+import crypto from 'node:crypto';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -18,13 +19,22 @@ const toolDefs = [
   },
 ];
 
+function authorizeUrl(path: string) {
+  return `http://localhost:${PORT}${path}`;
+}
+
+// Store registered clients and their pending auth codes
+const clients = new Map<string, string>(); // client_id -> client_secret
+
 const OAUTH_META = {
-  issuer: `http://localhost:${PORT}`,
-  authorization_endpoint: `http://localhost:${PORT}/authorize`,
-  token_endpoint: `http://localhost:${PORT}/token`,
+  issuer: authorizeUrl(''),
+  authorization_endpoint: authorizeUrl('/authorize'),
+  token_endpoint: authorizeUrl('/token'),
+  registration_endpoint: authorizeUrl('/register'),
   response_types_supported: ['code'],
   grant_types_supported: ['authorization_code'],
-  token_endpoint_auth_methods_supported: ['none'],
+  code_challenge_methods_supported: ['S256'],
+  token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post', 'none'],
 };
 
 function authenticate(req: http.IncomingMessage): boolean {
@@ -49,6 +59,15 @@ function callTool(tool: string, args: Record<string, unknown>) {
   }
 }
 
+function readBody(req: http.IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (c: Buffer) => chunks.push(c));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString()));
+    req.on('error', reject);
+  });
+}
+
 const app = http.createServer(async (req, res) => {
   const url = new URL(req.url!, `http://${req.headers.host ?? 'localhost'}`);
   const path = url.pathname;
@@ -57,6 +76,23 @@ const app = http.createServer(async (req, res) => {
   if (req.method === 'GET' && path === '/.well-known/oauth-authorization-server') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(OAUTH_META));
+    return;
+  }
+
+  // OAuth client registration (Dynamic Client Registration)
+  if (req.method === 'POST' && path === '/register') {
+    const body = await readBody(req);
+    const clientId = crypto.randomUUID();
+    const clientSecret = crypto.randomUUID();
+    clients.set(clientId, clientSecret);
+    res.writeHead(201, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      client_id: clientId,
+      client_secret: clientSecret,
+      client_id_issued_at: Math.floor(Date.now() / 1000),
+      client_secret_expires_at: 0,
+      redirect_uris: body ? (JSON.parse(body).redirect_uris ?? [authorizeUrl('/callback')]) : [authorizeUrl('/callback')],
+    }));
     return;
   }
 
@@ -107,11 +143,7 @@ const app = http.createServer(async (req, res) => {
   }
 
   try {
-    const buffers: Buffer[] = [];
-    if (req.method === 'POST') {
-      for await (const chunk of req) buffers.push(chunk);
-    }
-    const body = buffers.length > 0 ? JSON.parse(Buffer.concat(buffers).toString()) : undefined;
+    const body = req.method === 'POST' ? JSON.parse(await readBody(req)) : undefined;
 
     const srv = new Server({ name: 'demo-http-oauth', version: '1.0.0' }, { capabilities: { tools: {} } });
     srv.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: toolDefs }));

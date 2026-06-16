@@ -49,6 +49,11 @@ export class LogStore extends EventEmitter {
       toolName: entry.toolName,
       level: entry.level,
       message: entry.message,
+      inputJson: entry.inputJson,
+      outputText: entry.outputText,
+      rawOutput: entry.rawOutput,
+      originalTokens: entry.originalTokens,
+      toonTokens: entry.toonTokens,
       durationMs: entry.durationMs,
       tokensSaved: entry.tokensSaved,
     };

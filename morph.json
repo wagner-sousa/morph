@@ -22,7 +22,7 @@
       "description": "Demo MCP via HTTP without authentication",
       "transport": {
         "type": "http",
-        "url": "http://localhost:3200/mcp"
+        "url": "http://mcp-test-servers:3200/mcp"
       }
     },
     {
@@ -31,7 +31,8 @@
       "description": "Demo MCP via HTTP with OAuth authentication mock",
       "transport": {
         "type": "http",
-        "url": "http://localhost:3202/mcp"
+        "url": "http://mcp-test-servers:3202/mcp",
+        "apiKey": "demo-token"
       }
     },
     {
@@ -40,7 +41,7 @@
       "description": "Demo MCP via SSE streaming transport",
       "transport": {
         "type": "sse",
-        "url": "http://localhost:3201/sse"
+        "url": "http://mcp-test-servers:3201/sse"
       }
     },
     {
@@ -51,9 +52,7 @@
         "type": "stdio",
         "command": "node",
         "args": ["dist/examples/param-mcp-server.js", "--base-path", "/tmp/demo"],
-        "env": {
-          "DEMO_MODE": "true"
-        }
+        "env": { "DEMO_MODE": "true" }
       }
     }
   ],
@@ -67,7 +66,7 @@
   "webUi": {
     "enabled": true,
     "host": "0.0.0.0",
-    "port": 3100
+    "port": 3101
   },
   "health": {
     "intervalMs": 30000,

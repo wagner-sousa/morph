@@ -4,6 +4,7 @@ import { OAuthStore } from './oauth-store.js';
 
 export class MorphOAuthProvider implements OAuthClientProvider {
   private resolveRedirect: ((url: URL) => void) | undefined;
+  private pendingUrl: URL | undefined;
 
   constructor(
     private readonly mcpName: string,
@@ -44,7 +45,11 @@ export class MorphOAuthProvider implements OAuthClientProvider {
     await this.store.set(this.mcpName, {
       authorizationUrl: authorizationUrl.toString(),
     });
-    this.resolveRedirect?.(authorizationUrl);
+    this.pendingUrl = authorizationUrl;
+    if (this.resolveRedirect) {
+      this.resolveRedirect(authorizationUrl);
+      this.resolveRedirect = undefined;
+    }
   }
 
   saveCodeVerifier(codeVerifier: string): Promise<void> {
@@ -123,6 +128,11 @@ export class MorphOAuthProvider implements OAuthClientProvider {
   }
 
   waitForRedirect(): Promise<URL> {
+    if (this.pendingUrl) {
+      const url = this.pendingUrl;
+      this.pendingUrl = undefined;
+      return Promise.resolve(url);
+    }
     return new Promise((resolve) => {
       this.resolveRedirect = resolve;
     });
