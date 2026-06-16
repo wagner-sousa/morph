@@ -1,4 +1,3 @@
-import { Link } from '@tanstack/react-router';
 import { List, RefreshCw, Shield, Trash2 } from 'lucide-react';
 import { type MCPStatus, api } from '../lib/api';
 import { Badge } from './ui/badge';
@@ -34,15 +33,13 @@ export function MCPCard({ mcp, onDelete, onRestart, onTools, onEdit }: MCPCardPr
   };
 
   return (
-    <Card className="flex flex-col h-full">
+    <Card className="flex flex-col h-full cursor-pointer" onClick={() => onEdit?.(mcp.name)}>
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-        <Link to="/mcps/$name" params={{ name: mcp.name }} className="hover:underline">
-          <CardTitle className="text-sm">{mcp.name}</CardTitle>
-        </Link>
+        <CardTitle className="text-sm hover:underline">{mcp.name}</CardTitle>
         <Badge variant={statusVariant(mcp.status)}>{mcp.status}</Badge>
       </CardHeader>
-      <CardContent className="flex flex-col flex-1">
-        <div className="flex-1 text-xs text-morph-muted space-y-1 cursor-pointer" onClick={() => onEdit?.(mcp.name)}>
+      <CardContent className="flex flex-col flex-1" onClick={(e) => e.stopPropagation()}>
+        <div className="flex-1 text-xs text-morph-muted space-y-1">
           <div>Transport: {mcp.transport}</div>
           <div>Tools: {mcp.toolCount}</div>
           <div>Latency: {mcp.latencyMs != null ? `${mcp.latencyMs}ms` : '—'}</div>

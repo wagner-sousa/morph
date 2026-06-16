@@ -11,7 +11,6 @@ import { TooltipProvider } from './components/ui/tooltip';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Mcps } from './pages/Mcps';
-import { MCPDetail } from './pages/MCPDetail';
 import { Logs } from './pages/Logs';
 import { LogDetail } from './pages/LogDetail';
 import { Stats } from './pages/Stats';
@@ -57,12 +56,6 @@ const mcpsRoute = createRoute({
   component: Mcps,
 });
 
-const mcpDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/mcps/$name',
-  component: MCPDetail,
-});
-
 const logsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/logs',
@@ -90,7 +83,6 @@ const settingsRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   dashboardRoute,
   mcpsRoute,
-  mcpDetailRoute,
   logsRoute,
   logDetailRoute,
   statsRoute,

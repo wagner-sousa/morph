@@ -101,12 +101,12 @@ export const api = {
   logs: (limit = 50) => fetch<LogEntry[]>(`/logs?limit=${limit}`),
   log: (id: number) => fetch<LogEntry>(`/logs/${id}`),
   version: () => fetch<VersionInfo>('/version'),
-  config: () => fetch<{ mcps: MCPConfig[] }>('/config'),
+  config: () => fetch<{ mcpServers: MCPConfig[] }>('/config'),
   mcpConfig: async (name: string) => {
-    const cfg = await fetch<{ mcps: MCPConfig[] }>('/config');
-    return cfg.mcps.find((m) => m.name === name) ?? null;
+    const cfg = await fetch<{ mcpServers: MCPConfig[] }>('/config');
+    return cfg.mcpServers?.find((m) => m.name === name) ?? null;
   },
-  updateConfig: (cfg: { mcps: MCPConfig[] }) =>
+  updateConfig: (cfg: { mcpServers?: MCPConfig[] }) =>
     fetch<void>('/config', { method: 'PUT', body: cfg }),
   oauthStatus: (name: string) =>
     fetch<OAuthStatus>(`/mcps/${encodeURIComponent(name)}/oauth/status`),
