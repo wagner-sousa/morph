@@ -11,7 +11,9 @@
 }
 
 @layer base {
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+  }
 
   body {
     @apply bg-morph-bg text-morph-text font-sans antialiased;

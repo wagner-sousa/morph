@@ -2,9 +2,9 @@
  * IMPL: periodically pings each connected backend MCP via a cached listTools
  * call, refreshing latency/tool-count and surfacing status changes.
  */
-import type { Logger } from '../logging/logger.js';
-import type { HealthConfig } from '../config/types.js';
-import type { MCPClientRegistry } from '../mcp-client/registry.js';
+import type { Logger } from "../logging/logger.js";
+import type { HealthConfig } from "../config/types.js";
+import type { MCPClientRegistry } from "../mcp-client/registry.js";
 
 export class HealthChecker {
   private timer?: NodeJS.Timeout;
@@ -19,7 +19,10 @@ export class HealthChecker {
   start(): void {
     this.stop();
     this.timer = setInterval(() => void this.runOnce(), this.config.intervalMs);
-    this.logger.info({ intervalMs: this.config.intervalMs }, 'health checker started');
+    this.logger.info(
+      { intervalMs: this.config.intervalMs },
+      "health checker started",
+    );
   }
 
   setConfig(config: HealthConfig): void {
@@ -33,9 +36,15 @@ export class HealthChecker {
     await Promise.all(
       [...clients.keys()].map(async (name) => {
         try {
-          await this.withTimeout(this.registry.refreshTools(name), this.config.timeoutMs);
+          await this.withTimeout(
+            this.registry.refreshTools(name),
+            this.config.timeoutMs,
+          );
         } catch (err) {
-          this.logger.warn({ mcp: name, err: (err as Error).message }, 'health check failed');
+          this.logger.warn(
+            { mcp: name, err: (err as Error).message },
+            "health check failed",
+          );
         }
       }),
     );
@@ -45,7 +54,9 @@ export class HealthChecker {
     return Promise.race([
       promise,
       new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error(`health check timed out after ${ms}ms`)), ms),
+        setTimeout(() => {
+          reject(new Error(`health check timed out after ${String(ms)}ms`));
+        }, ms),
       ),
     ]);
   }

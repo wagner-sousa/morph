@@ -1,15 +1,23 @@
 /**
  * SPEC: the MCPClient contract every transport (stdio/HTTP/SSE) must satisfy.
  */
-import type { Tool, CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import type { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js';
-import type { Logger } from '../logging/logger.js';
+import type { Tool, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
+import type { Logger } from "../logging/logger.js";
 
 export type { Tool, CallToolResult };
 
-export type ClientStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
+export type ClientStatus =
+  | "connected"
+  | "connecting"
+  | "disconnected"
+  | "error";
 
-export type ClientEvent = 'connected' | 'disconnected' | 'error' | 'toolListChanged';
+export type ClientEvent =
+  | "connected"
+  | "disconnected"
+  | "error"
+  | "toolListChanged";
 
 export interface ClientOptions {
   logger: Logger;

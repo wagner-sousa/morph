@@ -66,15 +66,16 @@ graph LR
     BE --> STDIO & HTTP & OAUTH & SSE & PARAMS
 ```
 
-| Name | Transport | Port | Tools |
-|------|-----------|------|-------|
-| `demo-stdio` | STDIO | — | ping, users, echo |
-| `demo-http` | HTTP | 3200 | ping, users, echo |
-| `demo-http-oauth` | HTTP + OAuth | 3202 | ping, echo, time, whoami |
-| `demo-sse` | SSE | 3201 | ping, users, echo |
-| `demo-stdio-params` | STDIO | — | read, write, list, stats |
+| Name                | Transport    | Port | Tools                    |
+| ------------------- | ------------ | ---- | ------------------------ |
+| `demo-stdio`        | STDIO        | —    | ping, users, echo        |
+| `demo-http`         | HTTP         | 3200 | ping, users, echo        |
+| `demo-http-oauth`   | HTTP + OAuth | 3202 | ping, echo, time, whoami |
+| `demo-sse`          | SSE          | 3201 | ping, users, echo        |
+| `demo-stdio-params` | STDIO        | —    | read, write, list, stats |
 
 Start them with:
+
 ```bash
 docker compose -f docker-compose.dev.yml up -d mcp-test-servers
 ```
@@ -115,10 +116,15 @@ Add MORPH as the **only** MCP server in your agent config:
     "morph": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm",
-        "-v", "/path/to/config:/config:ro",
-        "-e", "MORPH_CONFIG=/config/morph.json",
-        "-e", "MORPH_TRANSPORT=stdio",
+        "run",
+        "-i",
+        "--rm",
+        "-v",
+        "/path/to/config:/config:ro",
+        "-e",
+        "MORPH_CONFIG=/config/morph.json",
+        "-e",
+        "MORPH_TRANSPORT=stdio",
         "morph:latest"
       ]
     }
@@ -128,14 +134,14 @@ Add MORPH as the **only** MCP server in your agent config:
 
 ## Web UI (Morph Studio)
 
-| Route | Page |
-|-------|------|
-| `/` | Dashboard — status, calls/min, TOON savings, totalizers |
-| `/mcps` | MCP CRUD — add, edit, remove, toggle servers (inline modal) |
-| `/logs` | Call history with search and level filter |
-| `/logs/:id` | Log detail — JSON original vs TOON, token savings |
-| `/stats` | TOON savings charts (bar, pie) |
-| `/settings` | Global config, import |
+| Route       | Page                                                        |
+| ----------- | ----------------------------------------------------------- |
+| `/`         | Dashboard — status, calls/min, TOON savings, totalizers     |
+| `/mcps`     | MCP CRUD — add, edit, remove, toggle servers (inline modal) |
+| `/logs`     | Call history with search and level filter                   |
+| `/logs/:id` | Log detail — JSON original vs TOON, token savings           |
+| `/stats`    | TOON savings charts (bar, pie)                              |
+| `/settings` | Global config, import                                       |
 
 Real-time updates via WebSocket at `ws://<host>/ws`.
 
