@@ -126,11 +126,43 @@ export class Hub extends EventEmitter {
   }
 
   private async executeCall(name: string, args: unknown): Promise<CallToolResult> {
-    if (isBuiltinTool(name)) return this.callBuiltin(name);
+    if (isBuiltinTool(name)) {
+      const result = this.callBuiltin(name);
+      const builtinConversion = this.converter.convertResult(result);
+      return builtinConversion.result;
+    }
 
-    const { mcpName, originalName } = this.router.resolve(name);
+    let mcpName: string;
+    let originalName: string;
+    try {
+      const route = this.router.resolve(name);
+      mcpName = route.mcpName;
+      originalName = route.originalName;
+    } catch (err) {
+      // Log routing failures
+      this.logs.append({
+        mcpName: 'system',
+        toolName: name,
+        level: 'error',
+        message: `Tool not found: ${(err as Error).message}`,
+        inputJson: args !== undefined ? JSON.stringify(args) : undefined,
+        durationMs: 0,
+        tokensSaved: 0,
+      });
+      throw err;
+    }
+
     const client = this.registry.getClient(mcpName);
     if (!client) {
+      this.logs.append({
+        mcpName: 'system',
+        toolName: name,
+        level: 'error',
+        message: `MCP "${mcpName}" is not available`,
+        inputJson: args !== undefined ? JSON.stringify(args) : undefined,
+        durationMs: 0,
+        tokensSaved: 0,
+      });
       throw new Error(`MCP "${mcpName}" is not available`);
     }
 
