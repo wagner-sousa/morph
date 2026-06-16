@@ -24,12 +24,19 @@ import { z } from 'zod';
 
 const mcpSchema = z.object({
   name: z.string().min(1, 'Name is required'),
+  description: z.string().optional(),
   transport: z.enum(['stdio', 'http', 'sse']),
   command: z.string().optional(),
   args: z.string().optional(),
   url: z.string().optional(),
   env: z.string().optional(),
   headers: z.string().optional(),
+  labels: z.string().optional(),
+  aliases: z.string().optional(),
+  cwd: z.string().optional(),
+  timeoutMs: z.coerce.number().int().positive().optional(),
+  apiKey: z.string().optional(),
+  reconnectIntervalMs: z.coerce.number().int().positive().optional(),
   enabled: z.boolean().default(true),
 });
 
@@ -37,14 +44,34 @@ type MCPForm = z.infer<typeof mcpSchema>;
 
 const defaultValues: MCPForm = {
   name: '',
+  description: '',
   transport: 'stdio',
   command: '',
   args: '',
   url: '',
   env: '',
   headers: '',
+  labels: '',
+  aliases: '',
+  cwd: '',
+  timeoutMs: undefined,
+  apiKey: '',
+  reconnectIntervalMs: undefined,
   enabled: true,
 };
+
+function parseLines(text: string): Record<string, string> {
+  return Object.fromEntries(
+    text.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+      const i = l.indexOf('=');
+      return i === -1 ? [l, ''] : [l.slice(0, i), l.slice(i + 1)];
+    }),
+  );
+}
+
+function joinLines(obj?: Record<string, string>): string {
+  return obj ? Object.entries(obj).map(([k, v]) => `${k}=${v}`).join('\n') : '';
+}
 
 function MCPFormDialog({
   open,
@@ -86,7 +113,7 @@ function MCPFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit(handleFormSubmit)}>
           <DialogHeader>
             <DialogTitle>{initial ? 'Edit MCP' : 'Add MCP'}</DialogTitle>
@@ -100,9 +127,11 @@ function MCPFormDialog({
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" {...register('name')} placeholder="my-server" />
-              {errors.name && (
-                <p className="text-xs text-red-400">{errors.name.message}</p>
-              )}
+              {errors.name && <p className="text-xs text-red-400">{errors.name.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Input id="description" {...register('description')} placeholder="What this MCP does" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="transport">Transport</Label>
@@ -119,12 +148,16 @@ function MCPFormDialog({
             {transport === 'stdio' && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="command">Command</Label>
+                  <Label htmlFor="command">Command *</Label>
                   <Input id="command" {...register('command')} placeholder="npx" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="args">Arguments</Label>
                   <Input id="args" {...register('args')} placeholder="-y @modelcontextprotocol/server-filesystem /path" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cwd">Working Directory (cwd)</Label>
+                  <Input id="cwd" {...register('cwd')} placeholder="/opt/mcp-server" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="env">Environment Variables</Label>
@@ -136,13 +169,21 @@ function MCPFormDialog({
                   />
                   <p className="text-xs text-morph-muted">One KEY=VALUE per line</p>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="timeoutMs">Timeout (ms)</Label>
+                  <Input id="timeoutMs" type="number" {...register('timeoutMs')} placeholder="30000" />
+                </div>
               </>
             )}
-            {transport !== 'stdio' && (
+            {transport === 'http' && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="url">URL</Label>
+                  <Label htmlFor="url">URL *</Label>
                   <Input id="url" {...register('url')} placeholder="http://..." />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="apiKey">API Key</Label>
+                  <Input id="apiKey" {...register('apiKey')} placeholder="sk-..." type="password" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="headers">Headers</Label>
@@ -156,16 +197,54 @@ function MCPFormDialog({
                 </div>
               </>
             )}
+            {transport === 'sse' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="url">URL *</Label>
+                  <Input id="url" {...register('url')} placeholder="http://..." />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="headers">Headers</Label>
+                  <textarea
+                    id="headers"
+                    className="flex min-h-[80px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-sm font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
+                    {...register('headers')}
+                    placeholder={"Authorization=Bearer sk_test_...\nX-Custom=value"}
+                  />
+                  <p className="text-xs text-morph-muted">One Header=Value per line</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reconnectIntervalMs">Reconnect Interval (ms)</Label>
+                  <Input id="reconnectIntervalMs" type="number" {...register('reconnectIntervalMs')} placeholder="5000" />
+                </div>
+              </>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="labels">Labels</Label>
+              <textarea
+                id="labels"
+                className="flex min-h-[60px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-sm font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
+                {...register('labels')}
+                placeholder={"team=engineering\ntype=production"}
+              />
+              <p className="text-xs text-morph-muted">One KEY=VALUE per line</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="aliases">Aliases (tool renames)</Label>
+              <textarea
+                id="aliases"
+                className="flex min-h-[60px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-sm font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
+                {...register('aliases')}
+                placeholder={"read_file=fs_read\nwrite_file=fs_write"}
+              />
+              <p className="text-xs text-morph-muted">One original_name=alias per line</p>
+            </div>
             <div className="flex items-center gap-2">
               <Controller
                 name="enabled"
                 control={control}
                 render={({ field }) => (
-                  <Switch
-                    id="enabled"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
+                  <Switch id="enabled" checked={field.value} onCheckedChange={field.onChange} />
                 )}
               />
               <Label htmlFor="enabled">Enabled</Label>
@@ -179,13 +258,32 @@ function MCPFormDialog({
           )}
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting || !!oauthPending}>
-              {isSubmitting ? 'Adding...' : oauthPending ? 'Waiting...' : (initial ? 'Save' : 'Add')}
+              {isSubmitting ? 'Saving...' : oauthPending ? 'Waiting...' : (initial ? 'Save' : 'Add')}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   );
+}
+
+function buildTransport(data: MCPForm): MCPTransport {
+  if (data.transport === 'stdio') {
+    const transport: MCPTransport = {
+      type: 'stdio',
+      command: data.command!,
+      args: data.args ? data.args.split(/\s+/) : [],
+    };
+    if (data.env) transport.env = parseLines(data.env);
+    if (data.cwd) transport.cwd = data.cwd;
+    if (data.timeoutMs) transport.timeoutMs = data.timeoutMs;
+    return transport;
+  }
+  const base = { type: data.transport as 'http' | 'sse', url: data.url! };
+  if (data.headers) (base as Record<string, unknown>).headers = parseLines(data.headers);
+  if (data.transport === 'http' && data.apiKey) (base as Record<string, unknown>).apiKey = data.apiKey;
+  if (data.transport === 'sse' && data.reconnectIntervalMs) (base as Record<string, unknown>).reconnectIntervalMs = data.reconnectIntervalMs;
+  return base;
 }
 
 export function Mcps() {
@@ -201,56 +299,23 @@ export function Mcps() {
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
-      if (e.data?.type === 'mcp-oauth') {
-        setOauthAdding(null);
-      }
+      if (e.data?.type === 'mcp-oauth') setOauthAdding(null);
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, []);
 
   const handleAdd = async (data: MCPForm) => {
-    const transport: MCPTransport =
-      data.transport === 'stdio'
-        ? {
-            type: 'stdio',
-            command: data.command!,
-            args: data.args ? data.args.split(/\s+/) : [],
-            ...(data.env
-              ? {
-                  env: Object.fromEntries(
-                    data.env
-                      .split('\n')
-                      .map((l) => l.trim())
-                      .filter(Boolean)
-                      .map((l) => {
-                        const i = l.indexOf('=');
-                        return i === -1 ? [l, ''] : [l.slice(0, i), l.slice(i + 1)];
-                      }),
-                  ),
-                }
-              : {}),
-          }
-        : {
-            type: data.transport as 'http' | 'sse',
-            url: data.url!,
-            ...(data.headers
-              ? {
-                  headers: Object.fromEntries(
-                    data.headers
-                      .split('\n')
-                      .map((l) => l.trim())
-                      .filter(Boolean)
-                      .map((l) => {
-                        const i = l.indexOf('=');
-                        return i === -1 ? [l, ''] : [l.slice(0, i), l.slice(i + 1)];
-                      }),
-                  ),
-                }
-              : {}),
-          };
+    const transport = buildTransport(data);
     const name = data.name;
-    const payload: MCPConfig = { name, enabled: data.enabled, transport };
+    const payload: MCPConfig = {
+      name,
+      enabled: data.enabled,
+      transport,
+      ...(data.description ? { description: data.description } : {}),
+      ...(data.labels ? { labels: parseLines(data.labels) } : {}),
+      ...(data.aliases ? { aliases: parseLines(data.aliases) } : {}),
+    };
     try {
       await addMcp.mutateAsync(payload);
       toast.success(`Added MCP "${name}"`);
@@ -266,19 +331,9 @@ export function Mcps() {
           const popup = window.open(oauthStatus.oauthUrl, 'oauth', 'width=600,height=700');
           if (popup) {
             const timer = setInterval(async () => {
-              if (popup.closed) {
-                clearInterval(timer);
-                setOauthAdding(null);
-                resolve();
-                return;
-              }
+              if (popup.closed) { clearInterval(timer); setOauthAdding(null); resolve(); return; }
               const status = await api.oauthStatus(name).catch(() => null);
-              if (status?.authorized || status?.oauthHasToken) {
-                clearInterval(timer);
-                popup.close();
-                setOauthAdding(null);
-                resolve();
-              }
+              if (status?.authorized || status?.oauthHasToken) { clearInterval(timer); popup.close(); setOauthAdding(null); resolve(); }
             }, 1000);
             setTimeout(() => { clearInterval(timer); setOauthAdding(null); resolve(); }, 120000);
             return;
@@ -298,18 +353,22 @@ export function Mcps() {
   const handleEditClick = async (name: string) => {
     const cfg = await api.mcpConfig(name);
     if (!cfg) { toast.error(`Config not found for "${name}"`); return; }
+    const t = cfg.transport;
     const form: MCPForm = {
       name: cfg.name,
-      transport: cfg.transport.type,
-      command: cfg.transport.type === 'stdio' ? cfg.transport.command : '',
-      args: cfg.transport.type === 'stdio' ? cfg.transport.args?.join(' ') ?? '' : '',
-      url: cfg.transport.type !== 'stdio' ? cfg.transport.url : '',
-      env: cfg.transport.type === 'stdio' && 'env' in cfg.transport
-        ? Object.entries((cfg.transport as { env?: Record<string, string> }).env ?? {}).map(([k, v]) => `${k}=${v}`).join('\n')
-        : '',
-      headers: cfg.transport.type !== 'stdio' && 'headers' in cfg.transport
-        ? Object.entries((cfg.transport as { headers?: Record<string, string> }).headers ?? {}).map(([k, v]) => `${k}=${v}`).join('\n')
-        : '',
+      description: cfg.description ?? '',
+      transport: t.type,
+      command: t.type === 'stdio' ? (t as { command: string }).command : '',
+      args: t.type === 'stdio' ? ((t as { args?: string[] }).args ?? []).join(' ') : '',
+      url: t.type !== 'stdio' ? t.url : '',
+      env: t.type === 'stdio' ? joinLines((t as { env?: Record<string, string> }).env) : '',
+      headers: t.type !== 'stdio' ? joinLines((t as { headers?: Record<string, string> }).headers) : '',
+      labels: joinLines(cfg.labels),
+      aliases: joinLines(cfg.aliases),
+      cwd: t.type === 'stdio' ? ((t as { cwd?: string }).cwd ?? '') : '',
+      timeoutMs: t.type === 'stdio' ? ((t as { timeoutMs?: number }).timeoutMs) : undefined,
+      apiKey: t.type === 'http' ? ((t as { apiKey?: string }).apiKey ?? '') : '',
+      reconnectIntervalMs: t.type === 'sse' ? ((t as { reconnectIntervalMs?: number }).reconnectIntervalMs) : undefined,
       enabled: cfg.enabled,
     };
     setEditingConfig(form);
@@ -318,39 +377,19 @@ export function Mcps() {
 
   const handleUpdate = async (data: MCPForm) => {
     if (!editingConfig) return;
-    const transport: MCPTransport =
-      data.transport === 'stdio'
-        ? {
-            type: 'stdio',
-            command: data.command!,
-            args: data.args ? data.args.split(/\s+/) : [],
-            ...(data.env
-              ? {
-                  env: Object.fromEntries(
-                    data.env.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
-                      const i = l.indexOf('=');
-                      return i === -1 ? [l, ''] : [l.slice(0, i), l.slice(i + 1)];
-                    }),
-                  ),
-                }
-              : {}),
-          }
-        : {
-            type: data.transport as 'http' | 'sse',
-            url: data.url!,
-            ...(data.headers
-              ? {
-                  headers: Object.fromEntries(
-                    data.headers.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
-                      const i = l.indexOf('=');
-                      return i === -1 ? [l, ''] : [l.slice(0, i), l.slice(i + 1)];
-                    }),
-                  ),
-                }
-              : {}),
-          };
+    const transport = buildTransport(data);
     try {
-      await updateMcp.mutateAsync({ name: editingConfig.name, cfg: { name: data.name, enabled: data.enabled, transport } });
+      await updateMcp.mutateAsync({
+        name: editingConfig.name,
+        cfg: {
+          name: data.name,
+          enabled: data.enabled,
+          transport,
+          ...(data.description ? { description: data.description } : {}),
+          ...(data.labels ? { labels: parseLines(data.labels) } : {}),
+          ...(data.aliases ? { aliases: parseLines(data.aliases) } : {}),
+        },
+      });
       toast.success(`Updated MCP "${data.name}"`);
     } catch {
       toast.error(`Failed to update MCP "${data.name}"`);
@@ -365,10 +404,9 @@ export function Mcps() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">MCP Servers</h1>
-          <Button onClick={() => { setEditingConfig(null); setDialogOpen(true); }}>
-            <Plus className="h-4 w-4" />
-            Add MCP
-          </Button>
+        <Button onClick={() => { setEditingConfig(null); setDialogOpen(true); }}>
+          <Plus className="h-4 w-4" /> Add MCP
+        </Button>
       </div>
 
       <MCPFormDialog
@@ -384,9 +422,7 @@ export function Mcps() {
           <MCPCard key={m.name} mcp={m} onDelete={handleDelete} onRestart={(name) => restartMcp.mutateAsync(name)} onTools={(name) => setToolsMcp(m)} onEdit={handleEditClick} />
         ))}
         {mcps?.length === 0 && (
-          <p className="text-sm text-morph-muted col-span-full">
-            No MCP servers configured. Click "Add MCP" to get started.
-          </p>
+          <p className="text-sm text-morph-muted col-span-full">No MCP servers configured. Click "Add MCP" to get started.</p>
         )}
       </div>
 
