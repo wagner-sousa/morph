@@ -138,12 +138,16 @@ export class Hub extends EventEmitter {
     let success = true;
     let tokensSaved = 0;
     let savingsPercent = 0;
+    let conversionOutput: string | undefined;
     try {
       const raw = await client.callTool(originalName, args);
       const conversion = this.converter.convertResult(raw);
       if (conversion.savings) {
         tokensSaved = conversion.savings.originalTokens - conversion.savings.toonTokens;
         savingsPercent = conversion.savings.percent;
+      }
+      if (conversion.result?.content) {
+        conversionOutput = JSON.stringify(conversion.result);
       }
       return conversion.result;
     } catch (err) {
@@ -158,6 +162,8 @@ export class Hub extends EventEmitter {
         toolName: name,
         level: success ? 'info' : 'error',
         message: success ? 'tool call succeeded' : 'tool call failed',
+        inputJson: args !== undefined ? JSON.stringify(args) : undefined,
+        outputText: conversionOutput,
         durationMs,
         tokensSaved,
       });

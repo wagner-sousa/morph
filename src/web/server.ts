@@ -114,6 +114,18 @@ export class WebServer {
 
     registerOAuthRoutes(app, hub);
 
+    app.get('/api/logs/:id', async (req) => {
+      const { id } = req.params as { id: string };
+      const log = hub.store.getLog(Number(id));
+      if (!log) throw new MorphError('NOT_FOUND', `Log ${id} not found`);
+      return log;
+    });
+
+    app.get('/api/calls/totals', async (req) => {
+      const q = req.query as { since?: string };
+      return hub.store.getCallTotals(q.since);
+    });
+
     app.get('/api/logs', async (req) => {
       const q = req.query as Record<string, string | undefined>;
       return hub.logs.query({
