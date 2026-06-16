@@ -78,15 +78,15 @@ mindmap
 
 ## Top-Level
 
-| Field | Type | Default | Notes |
-|-------|------|---------|-------|
-| `morph.version` | string | `"1.0"` | Schema version |
-| `morph.logLevel` | `debug\|info\|warn\|error` | `info` | |
-| `morph.allowConflicts` | boolean | `false` | Last MCP wins on tool-name conflict |
-| `morph.toolPrefix` | string | — | Prefix pattern for all exposed tools, e.g. `{name}_` or `{name}:` |
-| `toon` | object | see below | TOON conversion options |
-| `webUi` | object | see below | Web UI / API |
-| `health` | object | see below | Health-check cadence |
+| Field                  | Type                       | Default   | Notes                                                             |
+| ---------------------- | -------------------------- | --------- | ----------------------------------------------------------------- |
+| `morph.version`        | string                     | `"1.0"`   | Schema version                                                    |
+| `morph.logLevel`       | `debug\|info\|warn\|error` | `info`    |                                                                   |
+| `morph.allowConflicts` | boolean                    | `false`   | Last MCP wins on tool-name conflict                               |
+| `morph.toolPrefix`     | string                     | —         | Prefix pattern for all exposed tools, e.g. `{name}_` or `{name}:` |
+| `toon`                 | object                     | see below | TOON conversion options                                           |
+| `webUi`                | object                     | see below | Web UI / API                                                      |
+| `health`               | object                     | see below | Health-check cadence                                              |
 
 > MCP servers no longer live in `morph.json` — they are defined in `.mcp.json` (see below).
 
@@ -109,14 +109,14 @@ else is `stdio` (so a Claude stdio entry with just `command` works as-is).
 
 Per-server fields (all optional except the transport fields):
 
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| _(key)_ | string | ✅ | The object key is the server name; `[A-Za-z0-9_.-]` |
-| `enabled` | boolean | — | Toggle without removing (default `true`) |
-| `description` | string | — | Human-readable label |
-| `labels` | `Record<string,string>` | — | Metadata tags (team, type, env) |
-| `aliases` | `Record<string,string>` | — | `originalName → exposedName` overrides |
-| transport fields | — | ✅ | `command`/`args`/… (stdio) or `type`+`url`/… (http/sse) below |
+| Field            | Type                    | Required | Notes                                                         |
+| ---------------- | ----------------------- | -------- | ------------------------------------------------------------- |
+| _(key)_          | string                  | ✅       | The object key is the server name; `[A-Za-z0-9_.-]`           |
+| `enabled`        | boolean                 | —        | Toggle without removing (default `true`)                      |
+| `description`    | string                  | —        | Human-readable label                                          |
+| `labels`         | `Record<string,string>` | —        | Metadata tags (team, type, env)                               |
+| `aliases`        | `Record<string,string>` | —        | `originalName → exposedName` overrides                        |
+| transport fields | —                       | ✅       | `command`/`args`/… (stdio) or `type`+`url`/… (http/sse) below |
 
 ### Transport: STDIO (local process)
 
@@ -145,14 +145,14 @@ flowchart LR
 }
 ```
 
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `type` | `"stdio"` | ✅ | |
-| `command` | string | ✅ | Executable path or name |
-| `args` | string[] | — | Command arguments (default `[]`) |
-| `env` | `Record<string,string>` | — | Environment variables, supports `${ENV_VAR}` |
-| `cwd` | string | — | Working directory |
-| `timeoutMs` | number | — | Process timeout in milliseconds |
+| Field       | Type                    | Required | Notes                                        |
+| ----------- | ----------------------- | -------- | -------------------------------------------- |
+| `type`      | `"stdio"`               | ✅       |                                              |
+| `command`   | string                  | ✅       | Executable path or name                      |
+| `args`      | string[]                | —        | Command arguments (default `[]`)             |
+| `env`       | `Record<string,string>` | —        | Environment variables, supports `${ENV_VAR}` |
+| `cwd`       | string                  | —        | Working directory                            |
+| `timeoutMs` | number                  | —        | Process timeout in milliseconds              |
 
 ### Transport: HTTP (Streamable HTTP)
 
@@ -184,12 +184,12 @@ flowchart LR
 }
 ```
 
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `type` | `"http"` | ✅ | |
-| `url` | string | ✅ | Server endpoint (must point to the MCP endpoint) |
-| `headers` | `Record<string,string>` | — | HTTP headers sent with every request |
-| `apiKey` | string | — | Shorthand for `Authorization: Bearer <key>`. Bypasses OAuth flow when set |
+| Field     | Type                    | Required | Notes                                                                     |
+| --------- | ----------------------- | -------- | ------------------------------------------------------------------------- |
+| `type`    | `"http"`                | ✅       |                                                                           |
+| `url`     | string                  | ✅       | Server endpoint (must point to the MCP endpoint)                          |
+| `headers` | `Record<string,string>` | —        | HTTP headers sent with every request                                      |
+| `apiKey`  | string                  | —        | Shorthand for `Authorization: Bearer <key>`. Bypasses OAuth flow when set |
 
 > **OAuth:** When `apiKey` is not set and the server returns 401, MORPH automatically initiates the OAuth 2.0 Authorization Code flow with PKCE. The server must expose a valid `/.well-known/oauth-authorization-server` endpoint and support Dynamic Client Registration.
 
@@ -222,22 +222,22 @@ sequenceDiagram
 }
 ```
 
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `type` | `"sse"` | ✅ | |
-| `url` | string | ✅ | SSE endpoint URL |
-| `headers` | `Record<string,string>` | — | HTTP headers for both SSE and POST requests |
-| `reconnectIntervalMs` | number | — | Reconnection delay on disconnect (default SDK behaviour) |
+| Field                 | Type                    | Required | Notes                                                    |
+| --------------------- | ----------------------- | -------- | -------------------------------------------------------- |
+| `type`                | `"sse"`                 | ✅       |                                                          |
+| `url`                 | string                  | ✅       | SSE endpoint URL                                         |
+| `headers`             | `Record<string,string>` | —        | HTTP headers for both SSE and POST requests              |
+| `reconnectIntervalMs` | number                  | —        | Reconnection delay on disconnect (default SDK behaviour) |
 
 ## `toon`
 
-| Field | Type | Default | Notes |
-|-------|------|---------|-------|
-| `autoConvert` | boolean | `true` | Convert JSON results to TOON |
-| `delimiter` | `comma\|tab\|pipe` | `comma` | Tabular delimiter |
-| `indent` | int 0–8 | `2` | Spaces per level |
-| `flattenDepth` | int ≥0 | `4` | >0 enables safe key-folding |
-| `threshold` | int ≥0 | `100` | Min chars before converting |
+| Field          | Type               | Default | Notes                        |
+| -------------- | ------------------ | ------- | ---------------------------- |
+| `autoConvert`  | boolean            | `true`  | Convert JSON results to TOON |
+| `delimiter`    | `comma\|tab\|pipe` | `comma` | Tabular delimiter            |
+| `indent`       | int 0–8            | `2`     | Spaces per level             |
+| `flattenDepth` | int ≥0             | `4`     | >0 enables safe key-folding  |
+| `threshold`    | int ≥0             | `100`   | Min chars before converting  |
 
 ```json
 {
@@ -253,13 +253,13 @@ sequenceDiagram
 
 ## `webUi`
 
-| Field | Type | Default | Notes |
-|-------|------|---------|-------|
-| `enabled` | boolean | `true` | |
-| `host` | string | `0.0.0.0` | |
-| `port` | int | `3100` | |
-| `publicUrl` | string | — | Public-facing URL for OAuth redirects |
-| `auth.username` / `auth.passwordHash` | string | — | Basic Auth credentials |
+| Field                                 | Type    | Default   | Notes                                 |
+| ------------------------------------- | ------- | --------- | ------------------------------------- |
+| `enabled`                             | boolean | `true`    |                                       |
+| `host`                                | string  | `0.0.0.0` |                                       |
+| `port`                                | int     | `3100`    |                                       |
+| `publicUrl`                           | string  | —         | Public-facing URL for OAuth redirects |
+| `auth.username` / `auth.passwordHash` | string  | —         | Basic Auth credentials                |
 
 Basic Auth is enabled when `MORPH_WEB_USERNAME` (env) is set; requests to `/api/*` and `/ws` are then challenged.
 
@@ -276,11 +276,11 @@ Basic Auth is enabled when `MORPH_WEB_USERNAME` (env) is set; requests to `/api/
 
 ## `health`
 
-| Field | Type | Default | Notes |
-|-------|------|---------|-------|
-| `intervalMs` | int | `30000` | |
-| `timeoutMs` | int | `5000` | |
-| `maxRetries` | int | `3` | |
+| Field        | Type | Default | Notes |
+| ------------ | ---- | ------- | ----- |
+| `intervalMs` | int  | `30000` |       |
+| `timeoutMs`  | int  | `5000`  |       |
+| `maxRetries` | int  | `3`     |       |
 
 ```json
 {
@@ -384,15 +384,15 @@ Basic Auth is enabled when `MORPH_WEB_USERNAME` (env) is set; requests to `/api/
 
 ## Environment Variables
 
-| Var | Purpose |
-|-----|---------|
-| `MORPH_CONFIG` | Path to `morph.json` (settings) |
-| `MORPH_MCP_CONFIG` | Path to `.mcp.json` (servers); default: sibling of `morph.json` |
-| `MORPH_DATA_DIR` | SQLite directory (default `./data`) |
-| `MORPH_TRANSPORT` | `stdio` (default) or `http` |
-| `MORPH_SHUTDOWN_TIMEOUT` | Drain timeout ms (default `10000`) |
-| `MORPH_WEB_USERNAME` / `MORPH_WEB_PASSWORD` | Web Basic Auth |
-| `CORS_ORIGIN` | Allowed origin in production |
+| Var                                         | Purpose                                                         |
+| ------------------------------------------- | --------------------------------------------------------------- |
+| `MORPH_CONFIG`                              | Path to `morph.json` (settings)                                 |
+| `MORPH_MCP_CONFIG`                          | Path to `.mcp.json` (servers); default: sibling of `morph.json` |
+| `MORPH_DATA_DIR`                            | SQLite directory (default `./data`)                             |
+| `MORPH_TRANSPORT`                           | `stdio` (default) or `http`                                     |
+| `MORPH_SHUTDOWN_TIMEOUT`                    | Drain timeout ms (default `10000`)                              |
+| `MORPH_WEB_USERNAME` / `MORPH_WEB_PASSWORD` | Web Basic Auth                                                  |
+| `CORS_ORIGIN`                               | Allowed origin in production                                    |
 
 ## Importing Existing Configs
 

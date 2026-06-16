@@ -139,13 +139,13 @@ CLI flag  >  MORPH_* env var  >  morph.json value  >  built-in default
 `.mcp.json` server secrets stay as `${VAR}` placeholders (resolved from env).
 Copy `.env.example` to `.env` to see every variable; the most common:
 
-| Variable | morph.json field | Default |
-|----------|------------------|---------|
-| `MORPH_LOG_LEVEL` | `morph.logLevel` | `info` |
-| `MORPH_WEB_ENABLED` / `MORPH_WEB_HOST` / `MORPH_WEB_PORT` | `webUi.*` | `true` / `0.0.0.0` / `3100` |
-| `MORPH_TOON_AUTO_CONVERT` / `MORPH_TOON_DELIMITER` / `MORPH_TOON_INDENT` / `MORPH_TOON_FLATTEN_DEPTH` / `MORPH_TOON_THRESHOLD` | `toon.*` | see schema |
-| `MORPH_HEALTH_INTERVAL_MS` / `MORPH_HEALTH_TIMEOUT_MS` / `MORPH_HEALTH_MAX_RETRIES` | `health.*` | `30000` / `5000` / `3` |
-| `MORPH_ALLOW_CONFLICTS` / `MORPH_TOOL_PREFIX` | `morph.*` | `false` / `` |
+| Variable                                                                                                                       | morph.json field | Default                     |
+| ------------------------------------------------------------------------------------------------------------------------------ | ---------------- | --------------------------- |
+| `MORPH_LOG_LEVEL`                                                                                                              | `morph.logLevel` | `info`                      |
+| `MORPH_WEB_ENABLED` / `MORPH_WEB_HOST` / `MORPH_WEB_PORT`                                                                      | `webUi.*`        | `true` / `0.0.0.0` / `3100` |
+| `MORPH_TOON_AUTO_CONVERT` / `MORPH_TOON_DELIMITER` / `MORPH_TOON_INDENT` / `MORPH_TOON_FLATTEN_DEPTH` / `MORPH_TOON_THRESHOLD` | `toon.*`         | see schema                  |
+| `MORPH_HEALTH_INTERVAL_MS` / `MORPH_HEALTH_TIMEOUT_MS` / `MORPH_HEALTH_MAX_RETRIES`                                            | `health.*`       | `30000` / `5000` / `3`      |
+| `MORPH_ALLOW_CONFLICTS` / `MORPH_TOOL_PREFIX`                                                                                  | `morph.*`        | `false` / ``                |
 
 ### Single data folder
 

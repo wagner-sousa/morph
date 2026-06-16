@@ -7,19 +7,19 @@
  *   - .mcp.json  → MCP servers (Claude-style keyed object)
  * They are read independently and merged into a single MorphConfig.
  */
-import { readFile, writeFile } from 'node:fs/promises';
-import { resolve as resolvePath } from 'node:path';
-import { z } from 'zod';
-import { ConfigError } from '../utils/errors.js';
-import { resolveEnvVars } from '../utils/env.js';
+import { readFile, writeFile } from "node:fs/promises";
+import { resolve as resolvePath } from "node:path";
+import { z } from "zod";
+import { ConfigError } from "../utils/errors.js";
+import { resolveEnvVars } from "../utils/env.js";
 import {
   fromMcpDefinitions,
   McpFileSchema,
   MorphConfigSchema,
   MorphFileSchema,
   toMcpDefinitions,
-} from './schema.js';
-import type { MorphConfig } from './types.js';
+} from "./schema.js";
+import type { MorphConfig } from "./types.js";
 
 export interface LoadOptions {
   /** Resolve ${ENV_VAR} references against process.env (default true). */
@@ -31,37 +31,47 @@ export interface LoadOptions {
 function formatZodError(error: z.ZodError): string {
   return error.issues
     .map((issue) => {
-      const path = issue.path.length ? issue.path.join('.') : '(root)';
+      const path = issue.path.length ? issue.path.join(".") : "(root)";
       return `  • ${path}: ${issue.message}`;
     })
-    .join('\n');
+    .join("\n");
 }
 
-function parseWith<S extends z.ZodTypeAny>(schema: S, raw: unknown, label: string): z.infer<S> {
+function parseWith<S extends z.ZodTypeAny>(
+  schema: S,
+  raw: unknown,
+  label: string,
+): z.infer<S> {
   const result = schema.safeParse(raw);
   if (!result.success) {
-    throw new ConfigError(`invalid ${label}:\n${formatZodError(result.error)}`, result.error.issues);
+    throw new ConfigError(
+      `invalid ${label}:\n${formatZodError(result.error)}`,
+      result.error.issues,
+    );
   }
-  return result.data;
+  return result.data as z.infer<S>;
 }
 
 /** Validate an already-merged object against the in-memory config schema. */
 export function validateConfig(raw: unknown): MorphConfig {
-  return parseWith(MorphConfigSchema, raw, 'configuration');
+  return parseWith(MorphConfigSchema, raw, "configuration");
 }
 
 /** Coerce a `${VAR}`-style env string to boolean. Throws on unrecognized values. */
 function envBool(name: string, raw: string): boolean {
   const v = raw.trim().toLowerCase();
-  if (['true', '1', 'yes', 'on'].includes(v)) return true;
-  if (['false', '0', 'no', 'off'].includes(v)) return false;
-  throw new ConfigError(`invalid boolean for ${name}: "${raw}" (use true/false)`);
+  if (["true", "1", "yes", "on"].includes(v)) return true;
+  if (["false", "0", "no", "off"].includes(v)) return false;
+  throw new ConfigError(
+    `invalid boolean for ${name}: "${raw}" (use true/false)`,
+  );
 }
 
 /** Coerce an env string to integer. Throws when not a finite integer. */
 function envInt(name: string, raw: string): number {
   const n = Number(raw);
-  if (!Number.isInteger(n)) throw new ConfigError(`invalid integer for ${name}: "${raw}"`);
+  if (!Number.isInteger(n))
+    throw new ConfigError(`invalid integer for ${name}: "${raw}"`);
   return n;
 }
 
@@ -76,7 +86,10 @@ function envInt(name: string, raw: string): number {
  * Note: `.mcp.json` servers are intentionally not covered here — their dynamic,
  * per-server shape is parameterized via `${VAR}` interpolation instead.
  */
-export function applyEnvOverrides(config: MorphConfig, env: NodeJS.ProcessEnv): MorphConfig {
+export function applyEnvOverrides(
+  config: MorphConfig,
+  env: NodeJS.ProcessEnv,
+): MorphConfig {
   const next: MorphConfig = {
     ...config,
     morph: { ...config.morph },
@@ -87,31 +100,64 @@ export function applyEnvOverrides(config: MorphConfig, env: NodeJS.ProcessEnv): 
 
   const set = (name: string, apply: (raw: string) => void): void => {
     const raw = env[name];
-    if (raw !== undefined && raw !== '') apply(raw);
+    if (raw !== undefined && raw !== "") apply(raw);
   };
 
   // morph.*
-  set('MORPH_LOG_LEVEL', (v) => (next.morph.logLevel = v as MorphConfig['morph']['logLevel']));
-  set('MORPH_ALLOW_CONFLICTS', (v) => (next.morph.allowConflicts = envBool('MORPH_ALLOW_CONFLICTS', v)));
-  set('MORPH_TOOL_PREFIX', (v) => (next.morph.toolPrefix = v));
+  set(
+    "MORPH_LOG_LEVEL",
+    (v) => (next.morph.logLevel = v as MorphConfig["morph"]["logLevel"]),
+  );
+  set(
+    "MORPH_ALLOW_CONFLICTS",
+    (v) => (next.morph.allowConflicts = envBool("MORPH_ALLOW_CONFLICTS", v)),
+  );
+  set("MORPH_TOOL_PREFIX", (v) => (next.morph.toolPrefix = v));
 
   // webUi.*
-  set('MORPH_WEB_ENABLED', (v) => (next.webUi.enabled = envBool('MORPH_WEB_ENABLED', v)));
-  set('MORPH_WEB_HOST', (v) => (next.webUi.host = v));
-  set('MORPH_WEB_PORT', (v) => (next.webUi.port = envInt('MORPH_WEB_PORT', v)));
-  set('MORPH_WEB_PUBLIC_URL', (v) => (next.webUi.publicUrl = v));
+  set(
+    "MORPH_WEB_ENABLED",
+    (v) => (next.webUi.enabled = envBool("MORPH_WEB_ENABLED", v)),
+  );
+  set("MORPH_WEB_HOST", (v) => (next.webUi.host = v));
+  set("MORPH_WEB_PORT", (v) => (next.webUi.port = envInt("MORPH_WEB_PORT", v)));
+  set("MORPH_WEB_PUBLIC_URL", (v) => (next.webUi.publicUrl = v));
 
   // toon.*
-  set('MORPH_TOON_AUTO_CONVERT', (v) => (next.toon.autoConvert = envBool('MORPH_TOON_AUTO_CONVERT', v)));
-  set('MORPH_TOON_DELIMITER', (v) => (next.toon.delimiter = v as MorphConfig['toon']['delimiter']));
-  set('MORPH_TOON_INDENT', (v) => (next.toon.indent = envInt('MORPH_TOON_INDENT', v)));
-  set('MORPH_TOON_FLATTEN_DEPTH', (v) => (next.toon.flattenDepth = envInt('MORPH_TOON_FLATTEN_DEPTH', v)));
-  set('MORPH_TOON_THRESHOLD', (v) => (next.toon.threshold = envInt('MORPH_TOON_THRESHOLD', v)));
+  set(
+    "MORPH_TOON_AUTO_CONVERT",
+    (v) => (next.toon.autoConvert = envBool("MORPH_TOON_AUTO_CONVERT", v)),
+  );
+  set(
+    "MORPH_TOON_DELIMITER",
+    (v) => (next.toon.delimiter = v as MorphConfig["toon"]["delimiter"]),
+  );
+  set(
+    "MORPH_TOON_INDENT",
+    (v) => (next.toon.indent = envInt("MORPH_TOON_INDENT", v)),
+  );
+  set(
+    "MORPH_TOON_FLATTEN_DEPTH",
+    (v) => (next.toon.flattenDepth = envInt("MORPH_TOON_FLATTEN_DEPTH", v)),
+  );
+  set(
+    "MORPH_TOON_THRESHOLD",
+    (v) => (next.toon.threshold = envInt("MORPH_TOON_THRESHOLD", v)),
+  );
 
   // health.*
-  set('MORPH_HEALTH_INTERVAL_MS', (v) => (next.health.intervalMs = envInt('MORPH_HEALTH_INTERVAL_MS', v)));
-  set('MORPH_HEALTH_TIMEOUT_MS', (v) => (next.health.timeoutMs = envInt('MORPH_HEALTH_TIMEOUT_MS', v)));
-  set('MORPH_HEALTH_MAX_RETRIES', (v) => (next.health.maxRetries = envInt('MORPH_HEALTH_MAX_RETRIES', v)));
+  set(
+    "MORPH_HEALTH_INTERVAL_MS",
+    (v) => (next.health.intervalMs = envInt("MORPH_HEALTH_INTERVAL_MS", v)),
+  );
+  set(
+    "MORPH_HEALTH_TIMEOUT_MS",
+    (v) => (next.health.timeoutMs = envInt("MORPH_HEALTH_TIMEOUT_MS", v)),
+  );
+  set(
+    "MORPH_HEALTH_MAX_RETRIES",
+    (v) => (next.health.maxRetries = envInt("MORPH_HEALTH_MAX_RETRIES", v)),
+  );
 
   // Re-validate so bad enum/range values (e.g. an unknown delimiter) fail loudly.
   return validateConfig(next);
@@ -128,7 +174,10 @@ function resolveMcpEnv(
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [name, server] of Object.entries(servers)) {
-    out[name] = resolveEnvVars(server, { env, strict: server?.enabled !== false });
+    out[name] = resolveEnvVars(server, {
+      env,
+      strict: server.enabled !== false,
+    });
   }
   return out;
 }
@@ -143,7 +192,9 @@ export function parseConfig(
   try {
     morphRaw = JSON.parse(morphText);
   } catch (err) {
-    throw new ConfigError(`morph.json is not valid JSON: ${(err as Error).message}`);
+    throw new ConfigError(
+      `morph.json is not valid JSON: ${(err as Error).message}`,
+    );
   }
 
   let mcpRaw: unknown = { mcpServers: {} };
@@ -151,26 +202,32 @@ export function parseConfig(
     try {
       mcpRaw = JSON.parse(mcpText);
     } catch (err) {
-      throw new ConfigError(`.mcp.json is not valid JSON: ${(err as Error).message}`);
+      throw new ConfigError(
+        `.mcp.json is not valid JSON: ${(err as Error).message}`,
+      );
     }
   }
 
   const resolveEnv = options.resolveEnv !== false;
-  const morphResolved = resolveEnv ? resolveEnvVars(morphRaw, { env: options.env }) : morphRaw;
-  const morphFile = parseWith(MorphFileSchema, morphResolved, 'morph.json');
+  const morphResolved = resolveEnv
+    ? resolveEnvVars(morphRaw, { env: options.env })
+    : morphRaw;
+  const morphFile = parseWith(MorphFileSchema, morphResolved, "morph.json");
 
-  const mcpFile = parseWith(McpFileSchema, mcpRaw, '.mcp.json');
-  type Entry = z.infer<typeof McpFileSchema>['mcpServers'][string];
-  const serversRecord = (mcpFile.mcpServers ?? {}) as Record<string, Entry>;
+  const mcpFile = parseWith(McpFileSchema, mcpRaw, ".mcp.json");
+  type Entry = z.infer<typeof McpFileSchema>["mcpServers"][string];
+  const serversRecord = mcpFile.mcpServers;
   const serversResolved = resolveEnv
-    ? (resolveMcpEnv(
-        serversRecord as Record<string, Record<string, unknown>>,
-        options.env,
-      ) as Record<string, Entry>)
+    ? (resolveMcpEnv(serversRecord, options.env) as Record<string, Entry>)
     : serversRecord;
 
-  const merged = validateConfig({ ...morphFile, mcpServers: toMcpDefinitions(serversResolved) });
-  return resolveEnv ? applyEnvOverrides(merged, options.env ?? process.env) : merged;
+  const merged = validateConfig({
+    ...morphFile,
+    mcpServers: toMcpDefinitions(serversResolved),
+  });
+  return resolveEnv
+    ? applyEnvOverrides(merged, options.env ?? process.env)
+    : merged;
 }
 
 export interface SaveOptions {
@@ -188,21 +245,30 @@ export async function saveConfig(
   options: SaveOptions = {},
 ): Promise<void> {
   const { mcpServers, $schema, ...morph } = config;
-  const morphFile = { $schema: options.morphSchemaRef ?? $schema ?? './schema.json', ...morph };
+  const morphFile = {
+    $schema: options.morphSchemaRef ?? $schema ?? "./schema.json",
+    ...morph,
+  };
   const mcpFile = {
-    $schema: options.mcpSchemaRef ?? './mcp.schema.json',
+    $schema: options.mcpSchemaRef ?? "./mcp.schema.json",
     mcpServers: fromMcpDefinitions(mcpServers),
   };
-  await writeFile(resolvePath(morphPath), JSON.stringify(morphFile, null, 2) + '\n');
-  await writeFile(resolvePath(mcpPath), JSON.stringify(mcpFile, null, 2) + '\n');
+  await writeFile(
+    resolvePath(morphPath),
+    JSON.stringify(morphFile, null, 2) + "\n",
+  );
+  await writeFile(
+    resolvePath(mcpPath),
+    JSON.stringify(mcpFile, null, 2) + "\n",
+  );
 }
 
 async function readOptional(absolute: string): Promise<string | undefined> {
   try {
-    return await readFile(absolute, 'utf8');
+    return await readFile(absolute, "utf8");
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
-    if (code === 'ENOENT') return undefined;
+    if (code === "ENOENT") return undefined;
     throw new ConfigError(`cannot read ${absolute}: ${(err as Error).message}`);
   }
 }
@@ -216,9 +282,11 @@ export async function loadConfig(
   const morphAbs = resolvePath(morphPath);
   let morphText: string;
   try {
-    morphText = await readFile(morphAbs, 'utf8');
+    morphText = await readFile(morphAbs, "utf8");
   } catch (err) {
-    throw new ConfigError(`cannot read config file at ${morphAbs}: ${(err as Error).message}`);
+    throw new ConfigError(
+      `cannot read config file at ${morphAbs}: ${(err as Error).message}`,
+    );
   }
   const mcpText = await readOptional(resolvePath(mcpPath));
   return parseConfig(morphText, mcpText, options);
