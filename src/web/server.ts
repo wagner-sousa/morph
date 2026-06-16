@@ -16,6 +16,7 @@ import fastifyStatic from '@fastify/static';
 import type { Logger } from '../logging/logger.js';
 import { getVersionInfo } from '../utils/version.js';
 import { MorphError } from '../utils/errors.js';
+import { registerOAuthRoutes } from './oauth-routes.js';
 import { importConfig } from '../import/importer.js';
 import type { Hub } from '../hub.js';
 
@@ -108,6 +109,8 @@ export class WebServer {
       await hub.registry.connect(name);
       return { ok: true };
     });
+
+    registerOAuthRoutes(app, hub);
 
     app.get('/api/logs', async (req) => {
       const q = req.query as Record<string, string | undefined>;
