@@ -103,7 +103,7 @@ MORPH is configured via a single `morph.json` file:
 }
 ```
 
-See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for the complete reference.
+See [Configuration](https://wagner-sousa.github.io/morph/02-usage/010_configuration/) for the complete reference.
 
 ## Agent Setup
 
@@ -159,7 +159,7 @@ flowchart TB
     Hub --> SQL[(SQLite)]
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
+See [Architecture](https://wagner-sousa.github.io/morph/01-about/030_architecture/) for details.
 
 ## Development
 
@@ -174,13 +174,13 @@ docker run --rm -v "$PWD":/app -w /app node:22 sh -c "npm install && npm test"
 docker run --rm -v "$PWD":/app -w /app node:22 sh -c "npm install && npm run build"
 ```
 
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+See [Development Guide](https://wagner-sousa.github.io/morph/03-development/000_development/).
 
 ## Documentation
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — components, layers, data flow
-- [docs/CONFIGURATION.md](docs/CONFIGURATION.md) — every `morph.json` field with examples
-- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — SDD workflow, layout, testing
+- [Architecture](https://wagner-sousa.github.io/morph/01-about/030_architecture/) — components, layers, data flow
+- [Configuration](https://wagner-sousa.github.io/morph/02-usage/010_configuration/) — every `morph.json` field with examples
+- [Development Guide](https://wagner-sousa.github.io/morph/03-development/000_development/) — SDD workflow, layout, testing
 
 ## License
 

@@ -4,7 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'site/**'
+      - 'docs/**'
+      - 'mkdocs.yml'
       - '.github/workflows/docs.yml'
 
 permissions:
@@ -37,7 +38,6 @@ jobs:
 
       - name: Build site
         run: mkdocs build --strict
-        working-directory: site
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
@@ -45,7 +45,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site/site
+          path: site
 
       - name: Deploy to GitHub Pages
         id: deployment

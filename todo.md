@@ -13,7 +13,7 @@
   RUN npm install --no-audit --no-fund
   COPY tsconfig.json ./
   ```
-- [ ] **`toolPrefix` undocumented** — The `morph.toolPrefix` config field exists in code and tests but is not listed in `docs/CONFIGURATION.md` or the `morph` table in `README.md`.
+- [ ] **`toolPrefix` undocumented** — The `morph.toolPrefix` config field exists in code and tests but is not listed in the Configuration docs page or the `morph` table in `README.md`.
 - [ ] **`--mcp` flag undocumented** — The CLI `--mcp <name>` flag exists in code (`src/index.ts`) but is not mentioned in any documentation.
 - [ ] **Settings form undocumented** — The new Settings UI with sections for General, TOON, Web UI, Health is not documented anywhere.
 - [ ] **No `node_modules` caching in CI** — `npm ci` runs 3 times independently (typecheck, test, build jobs). Add `actions/cache` to share dependencies between jobs.
