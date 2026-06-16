@@ -5,6 +5,7 @@
  */
 import { EventEmitter } from 'node:events';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import type { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { CallToolResultSchema } from '@modelcontextprotocol/sdk/types.js';
 import type { Logger } from '../logging/logger.js';
@@ -26,6 +27,7 @@ export abstract class BaseMCPClient extends EventEmitter implements MCPClient {
   private lastError?: string;
   protected readonly logger: Logger;
   protected readonly maxRetries: number;
+  protected readonly authProvider?: OAuthClientProvider;
 
   constructor(
     readonly name: string,
@@ -34,6 +36,7 @@ export abstract class BaseMCPClient extends EventEmitter implements MCPClient {
     super();
     this.logger = options.logger.child({ mcp: name });
     this.maxRetries = options.maxRetries ?? 3;
+    this.authProvider = options.authProvider;
   }
 
   /** Build the concrete SDK transport (stdio/http/sse). */

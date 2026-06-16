@@ -13,6 +13,7 @@ import { LogStore } from './logging/store.js';
 import { Metrics } from './metrics.js';
 import { Store } from './persistence/store.js';
 import { MCPClientRegistry } from './mcp-client/registry.js';
+import { OAuthStore } from './mcp-client/oauth-store.js';
 import { Router } from './router/index.js';
 import { ToonConverter } from './toon/converter.js';
 import { HealthChecker } from './health/checker.js';
@@ -36,7 +37,7 @@ export interface HubOptions {
 export class Hub extends EventEmitter {
   private config: MorphConfig;
   private readonly configPath: string;
-  private readonly logger: Logger;
+  readonly logger: Logger;
   readonly registry: MCPClientRegistry;
   readonly router: Router;
   readonly converter: ToonConverter;
@@ -44,21 +45,26 @@ export class Hub extends EventEmitter {
   readonly metrics: Metrics;
   readonly logs: LogStore;
   readonly store: Store;
+  readonly oauthStore: OAuthStore;
   private readonly watcher = new ConfigWatcher();
   private readonly startedAt = Date.now();
   private readonly inFlight = new Set<Promise<unknown>>();
+  private dataDir: string;
 
   constructor(options: HubOptions) {
     super();
     this.config = options.config;
     this.configPath = resolvePath(options.configPath);
     this.logger = options.logger;
-    this.registry = new MCPClientRegistry(this.logger);
+    this.dataDir = resolvePath(options.dataDir ?? './data');
+    this.oauthStore = new OAuthStore(this.dataDir);
+    const publicUrl = options.config.webUi?.publicUrl ?? `http://localhost:${options.config.webUi?.port ?? 3101}`;
+    this.registry = new MCPClientRegistry(this.logger, this.oauthStore, publicUrl);
     this.router = new Router(this.logger);
     this.converter = new ToonConverter(this.config.toon);
     this.metrics = new Metrics();
     this.logs = new LogStore();
-    this.store = new Store(resolvePath(options.dataDir ?? './data', 'morph.db'));
+    this.store = new Store(resolvePath(this.dataDir, 'morph.db'));
     this.health = new HealthChecker(this.registry, this.config.health, this.logger);
 
     this.registry.on('toolListChanged', () => this.rebuildRouter());
@@ -72,6 +78,7 @@ export class Hub extends EventEmitter {
   }
 
   async start(): Promise<void> {
+    await this.oauthStore.load();
     await this.registry.initialize(this.config.mcpServers);
     this.rebuildRouter();
     this.health.start();
