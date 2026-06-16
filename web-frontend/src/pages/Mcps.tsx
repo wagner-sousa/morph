@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Loader2, Plus } from 'lucide-react';
 import { api, type MCPConfig, type MCPTransport } from '../lib/api';
-import { useAddMcp, useDeleteMcp, useMcps, useRestartMcp } from '../hooks/useMcps';
+import { useAddMcp, useDeleteMcp, useMcps, useRestartMcp, useUpdateMcp } from '../hooks/useMcps';
 import { MCPCard } from '../components/MCPCard';
 import { Button } from '../components/ui/button';
 import {
@@ -192,7 +192,9 @@ export function Mcps() {
   const addMcp = useAddMcp();
   const deleteMcp = useDeleteMcp();
   const restartMcp = useRestartMcp();
+  const updateMcp = useUpdateMcp();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<MCPForm | null>(null);
   const [oauthAdding, setOauthAdding] = useState<string | null>(null);
 
   useEffect(() => {
@@ -291,6 +293,68 @@ export function Mcps() {
     toast.success(`Deleted MCP "${name}"`);
   };
 
+  const handleEditClick = async (name: string) => {
+    const cfg = await api.mcpConfig(name);
+    if (!cfg) { toast.error(`Config not found for "${name}"`); return; }
+    const form: MCPForm = {
+      name: cfg.name,
+      transport: cfg.transport.type,
+      command: cfg.transport.type === 'stdio' ? cfg.transport.command : '',
+      args: cfg.transport.type === 'stdio' ? cfg.transport.args?.join(' ') ?? '' : '',
+      url: cfg.transport.type !== 'stdio' ? cfg.transport.url : '',
+      env: cfg.transport.type === 'stdio' && 'env' in cfg.transport
+        ? Object.entries((cfg.transport as { env?: Record<string, string> }).env ?? {}).map(([k, v]) => `${k}=${v}`).join('\n')
+        : '',
+      headers: cfg.transport.type !== 'stdio' && 'headers' in cfg.transport
+        ? Object.entries((cfg.transport as { headers?: Record<string, string> }).headers ?? {}).map(([k, v]) => `${k}=${v}`).join('\n')
+        : '',
+      enabled: cfg.enabled,
+    };
+    setEditingConfig(form);
+    setDialogOpen(true);
+  };
+
+  const handleUpdate = async (data: MCPForm) => {
+    if (!editingConfig) return;
+    const transport: MCPTransport =
+      data.transport === 'stdio'
+        ? {
+            type: 'stdio',
+            command: data.command!,
+            args: data.args ? data.args.split(/\s+/) : [],
+            ...(data.env
+              ? {
+                  env: Object.fromEntries(
+                    data.env.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+                      const i = l.indexOf('=');
+                      return i === -1 ? [l, ''] : [l.slice(0, i), l.slice(i + 1)];
+                    }),
+                  ),
+                }
+              : {}),
+          }
+        : {
+            type: data.transport as 'http' | 'sse',
+            url: data.url!,
+            ...(data.headers
+              ? {
+                  headers: Object.fromEntries(
+                    data.headers.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+                      const i = l.indexOf('=');
+                      return i === -1 ? [l, ''] : [l.slice(0, i), l.slice(i + 1)];
+                    }),
+                  ),
+                }
+              : {}),
+          };
+    try {
+      await updateMcp.mutateAsync({ name: editingConfig.name, cfg: { name: data.name, enabled: data.enabled, transport } });
+      toast.success(`Updated MCP "${data.name}"`);
+    } catch {
+      toast.error(`Failed to update MCP "${data.name}"`);
+    }
+  };
+
   if (isLoading) {
     return <div className="text-morph-muted">Loading...</div>;
   }
@@ -299,17 +363,23 @@ export function Mcps() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">MCP Servers</h1>
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button onClick={() => { setEditingConfig(null); setDialogOpen(true); }}>
             <Plus className="h-4 w-4" />
             Add MCP
           </Button>
       </div>
 
-      <MCPFormDialog open={dialogOpen} onOpenChange={setDialogOpen} onSubmit={handleAdd} oauthPending={oauthAdding} />
+      <MCPFormDialog
+        open={dialogOpen}
+        onOpenChange={(v) => { setDialogOpen(v); if (!v) setEditingConfig(null); }}
+        initial={editingConfig ?? undefined}
+        onSubmit={editingConfig ? handleUpdate : handleAdd}
+        oauthPending={oauthAdding}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {mcps?.map((m) => (
-          <MCPCard key={m.name} mcp={m} onDelete={handleDelete} onRestart={(name) => restartMcp.mutateAsync(name)} onTools={() => {}} />
+          <MCPCard key={m.name} mcp={m} onDelete={handleDelete} onRestart={(name) => restartMcp.mutateAsync(name)} onTools={() => {}} onEdit={handleEditClick} />
         ))}
         {mcps?.length === 0 && (
           <p className="text-sm text-morph-muted col-span-full">

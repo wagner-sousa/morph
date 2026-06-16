@@ -95,6 +95,10 @@ export const api = {
   logs: (limit = 50) => fetch<LogEntry[]>(`/logs?limit=${limit}`),
   version: () => fetch<VersionInfo>('/version'),
   config: () => fetch<{ mcps: MCPConfig[] }>('/config'),
+  mcpConfig: async (name: string) => {
+    const cfg = await fetch<{ mcps: MCPConfig[] }>('/config');
+    return cfg.mcps.find((m) => m.name === name) ?? null;
+  },
   updateConfig: (cfg: { mcps: MCPConfig[] }) =>
     fetch<void>('/config', { method: 'PUT', body: cfg }),
   oauthStatus: (name: string) =>
