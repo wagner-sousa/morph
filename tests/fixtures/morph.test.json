@@ -1,0 +1,45 @@
+{
+  "$schema": "../../schema.json",
+  "morph": {
+    "version": "1.0",
+    "logLevel": "info"
+  },
+  "mcpServers": [
+    {
+      "name": "echo",
+      "enabled": true,
+      "description": "Echo server for testing",
+      "transport": {
+        "type": "stdio",
+        "command": "node",
+        "args": ["dist/examples/demo-mcp-server.js"]
+      }
+    },
+    {
+      "name": "disabled-server",
+      "enabled": false,
+      "description": "Disabled server should not connect",
+      "transport": {
+        "type": "stdio",
+        "command": "nonexistent"
+      }
+    }
+  ],
+  "toon": {
+    "autoConvert": true,
+    "delimiter": "comma",
+    "indent": 2,
+    "flattenDepth": 4,
+    "threshold": 100
+  },
+  "webUi": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 3100
+  },
+  "health": {
+    "intervalMs": 30000,
+    "timeoutMs": 5000,
+    "maxRetries": 3
+  }
+}
