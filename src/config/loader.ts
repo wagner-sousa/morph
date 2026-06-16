@@ -66,6 +66,14 @@ export function parseConfig(jsonText: string, options: LoadOptions = {}): MorphC
   return validateConfig(resolved);
 }
 
+/** Serialize and persist a config back to disk, preserving `$schema` if present. */
+export async function saveConfig(path: string, config: MorphConfig, schemaRef?: string): Promise<void> {
+  const { writeFile } = await import('node:fs/promises');
+  const obj = config as Record<string, unknown>;
+  if (schemaRef) obj.$schema = schemaRef;
+  await writeFile(resolvePath(path), JSON.stringify(obj, null, 2) + '\n');
+}
+
 /** Read and validate morph.json from disk. */
 export async function loadConfig(path: string, options: LoadOptions = {}): Promise<MorphConfig> {
   const absolute = resolvePath(path);
