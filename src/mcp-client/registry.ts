@@ -5,20 +5,20 @@
  * hot add/remove/update used by the config watcher. Tool discovery is cached
  * per client so the router and health checker can read it cheaply.
  */
-import { EventEmitter } from 'node:events';
-import type { Logger } from '../logging/logger.js';
-import type { MCPDefinition } from '../config/types.js';
-import { MCPNotFoundError } from '../utils/errors.js';
-import { createMCPClient } from './factory.js';
-import { OAuthStore } from './oauth-store.js';
-import { MorphOAuthProvider } from './oauth-provider.js';
-import type { ClientStatus, MCPClient, Tool } from './types.js';
+import { EventEmitter } from "node:events";
+import type { Logger } from "../logging/logger.js";
+import type { MCPDefinition } from "../config/types.js";
+import { MCPNotFoundError } from "../utils/errors.js";
+import { createMCPClient } from "./factory.js";
+import { OAuthStore } from "./oauth-store.js";
+import { MorphOAuthProvider } from "./oauth-provider.js";
+import type { ClientStatus, MCPClient, Tool } from "./types.js";
 
 export interface MCPStatusSummary {
   name: string;
   enabled: boolean;
-  status: ClientStatus | 'disabled';
-  transport: MCPDefinition['transport']['type'];
+  status: ClientStatus | "disabled";
+  transport: MCPDefinition["transport"]["type"];
   toolCount: number;
   latencyMs?: number;
   lastPing?: string;
@@ -36,7 +36,11 @@ interface Entry {
   lastPing?: string;
 }
 
-export type RegistryEvent = 'connected' | 'disconnected' | 'error' | 'toolListChanged';
+export type RegistryEvent =
+  | "connected"
+  | "disconnected"
+  | "error"
+  | "toolListChanged";
 
 export class MCPClientRegistry extends EventEmitter {
   private readonly entries = new Map<string, Entry>();
@@ -52,7 +56,9 @@ export class MCPClientRegistry extends EventEmitter {
 
   /** Create+connect every enabled definition. Failures are logged, not thrown. */
   async initialize(definitions: MCPDefinition[]): Promise<void> {
-    await Promise.all(definitions.map((def) => this.add(def).catch(() => undefined)));
+    await Promise.all(
+      definitions.map((def) => this.add(def).catch(() => undefined)),
+    );
   }
 
   async add(definition: MCPDefinition): Promise<void> {
@@ -62,7 +68,7 @@ export class MCPClientRegistry extends EventEmitter {
     const entry: Entry = { definition, tools: [] };
     this.entries.set(definition.name, entry);
     if (!definition.enabled) {
-      this.logger.info({ mcp: definition.name }, 'registered (disabled)');
+      this.logger.info({ mcp: definition.name }, "registered (disabled)");
       return;
     }
     await this.startEntry(entry);
@@ -75,17 +81,19 @@ export class MCPClientRegistry extends EventEmitter {
       authProvider,
     });
     entry.client = client;
-    client.on('disconnected', () => this.emit('disconnected', entry.definition.name));
-    client.on('error', (err) => this.emit('error', entry.definition.name, err));
+    client.on("disconnected", () =>
+      this.emit("disconnected", entry.definition.name),
+    );
+    client.on("error", (err) => this.emit("error", entry.definition.name, err));
     try {
       await client.connect();
       entry.tools = await client.listTools();
-      this.emit('connected', entry.definition.name);
-      this.emit('toolListChanged', entry.definition.name);
+      this.emit("connected", entry.definition.name);
+      this.emit("toolListChanged", entry.definition.name);
     } catch (err) {
       this.logger.error(
         { mcp: entry.definition.name, err: (err as Error).message },
-        'failed to start MCP',
+        "failed to start MCP",
       );
       throw err;
     }
@@ -93,7 +101,7 @@ export class MCPClientRegistry extends EventEmitter {
 
   async connect(name: string): Promise<void> {
     const entry = this.require(name);
-    if (entry.client?.getStatus() === 'connected') return;
+    if (entry.client?.getStatus() === "connected") return;
     await entry.client?.disconnect();
     entry.client = undefined;
     entry.tools = [];
@@ -121,21 +129,26 @@ export class MCPClientRegistry extends EventEmitter {
 
   async disconnectAll(): Promise<void> {
     await Promise.all(
-      [...this.entries.values()].map((e) => e.client?.disconnect().catch(() => undefined)),
+      [...this.entries.values()].map((e) =>
+        e.client
+          ? e.client.disconnect().catch(() => undefined)
+          : Promise.resolve(),
+      ),
     );
   }
 
   /** Refresh cached tools and record ping latency for an entry. */
   async refreshTools(name: string): Promise<Tool[]> {
     const entry = this.require(name);
-    if (!entry.client || entry.client.getStatus() !== 'connected') return entry.tools;
+    if (!entry.client || entry.client.getStatus() !== "connected")
+      return entry.tools;
     const started = performance.now();
     const tools = await entry.client.listTools();
     entry.latencyMs = Math.round(performance.now() - started);
     entry.lastPing = new Date().toISOString();
     const changed = tools.length !== entry.tools.length;
     entry.tools = tools;
-    if (changed) this.emit('toolListChanged', name);
+    if (changed) this.emit("toolListChanged", name);
     return tools;
   }
 
@@ -146,7 +159,8 @@ export class MCPClientRegistry extends EventEmitter {
   getConnectedClients(): Map<string, MCPClient> {
     const map = new Map<string, MCPClient>();
     for (const [name, entry] of this.entries) {
-      if (entry.client?.getStatus() === 'connected') map.set(name, entry.client);
+      if (entry.client?.getStatus() === "connected")
+        map.set(name, entry.client);
     }
     return map;
   }
@@ -169,7 +183,9 @@ export class MCPClientRegistry extends EventEmitter {
       return {
         name: definition.name,
         enabled: definition.enabled,
-        status: !definition.enabled ? 'disabled' : (client?.getStatus() ?? 'disconnected'),
+        status: !definition.enabled
+          ? "disabled"
+          : (client?.getStatus() ?? "disconnected"),
         transport: definition.transport.type,
         toolCount: entry.tools.length,
         latencyMs: entry.latencyMs,
@@ -188,12 +204,18 @@ export class MCPClientRegistry extends EventEmitter {
     return entry;
   }
 
-  private getOrCreateAuthProvider(def: MCPDefinition): MorphOAuthProvider | undefined {
-    if (def.transport.type !== 'http') return undefined;
+  private getOrCreateAuthProvider(
+    def: MCPDefinition,
+  ): MorphOAuthProvider | undefined {
+    if (def.transport.type !== "http") return undefined;
     if (!this.oauthStore || !this.oauthBaseUrl) return undefined;
     let provider = this.oauthProviders.get(def.name);
     if (!provider) {
-      provider = new MorphOAuthProvider(def.name, this.oauthStore, this.oauthBaseUrl);
+      provider = new MorphOAuthProvider(
+        def.name,
+        this.oauthStore,
+        this.oauthBaseUrl,
+      );
       this.oauthProviders.set(def.name, provider);
     }
     return provider;
@@ -220,7 +242,8 @@ export class MCPClientRegistry extends EventEmitter {
 
   async finishOAuth(name: string, authorizationCode: string): Promise<void> {
     const client = this.getClient(name);
-    if (!client?.finishOAuth) throw new Error(`OAuth not available for MCP "${name}"`);
+    if (!client?.finishOAuth)
+      throw new Error(`OAuth not available for MCP "${name}"`);
     await client.finishOAuth(authorizationCode);
   }
 }

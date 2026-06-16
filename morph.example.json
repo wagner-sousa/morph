@@ -1,0 +1,25 @@
+{
+  "$schema": "./schema.json",
+  "morph": {
+    "version": "1.0",
+    "logLevel": "info",
+    "allowConflicts": false
+  },
+  "toon": {
+    "autoConvert": true,
+    "delimiter": "comma",
+    "indent": 2,
+    "flattenDepth": 4,
+    "threshold": 100
+  },
+  "webUi": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 3101
+  },
+  "health": {
+    "intervalMs": 30000,
+    "timeoutMs": 5000,
+    "maxRetries": 3
+  }
+}

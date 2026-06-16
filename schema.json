@@ -16,156 +16,20 @@
             },
             "logLevel": {
               "type": "string",
-              "enum": [
-                "debug",
-                "info",
-                "warn",
-                "error"
-              ],
+              "enum": ["debug", "info", "warn", "error"],
               "default": "info"
             },
             "allowConflicts": {
               "type": "boolean",
               "default": false
+            },
+            "toolPrefix": {
+              "type": "string",
+              "default": ""
             }
           },
           "additionalProperties": false,
           "default": {}
-        },
-        "mcpServers": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "^[a-zA-Z0-9_.-]+$"
-              },
-              "enabled": {
-                "type": "boolean",
-                "default": true
-              },
-              "description": {
-                "type": "string"
-              },
-              "labels": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "string"
-                }
-              },
-              "aliases": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "string"
-                }
-              },
-              "transport": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "const": "stdio"
-                      },
-                      "command": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "args": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        },
-                        "default": []
-                      },
-                      "env": {
-                        "type": "object",
-                        "additionalProperties": {
-                          "type": "string"
-                        }
-                      },
-                      "cwd": {
-                        "type": "string"
-                      },
-                      "timeoutMs": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0
-                      }
-                    },
-                    "required": [
-                      "type",
-                      "command"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "const": "http"
-                      },
-                      "url": {
-                        "type": "string",
-                        "format": "uri"
-                      },
-                      "headers": {
-                        "type": "object",
-                        "additionalProperties": {
-                          "type": "string"
-                        }
-                      },
-                      "apiKey": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "type",
-                      "url"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "const": "sse"
-                      },
-                      "url": {
-                        "type": "string",
-                        "format": "uri"
-                      },
-                      "headers": {
-                        "type": "object",
-                        "additionalProperties": {
-                          "type": "string"
-                        }
-                      },
-                      "reconnectIntervalMs": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0
-                      }
-                    },
-                    "required": [
-                      "type",
-                      "url"
-                    ],
-                    "additionalProperties": false
-                  }
-                ]
-              }
-            },
-            "required": [
-              "name",
-              "transport"
-            ],
-            "additionalProperties": false
-          },
-          "default": []
         },
         "toon": {
           "type": "object",
@@ -176,11 +40,7 @@
             },
             "delimiter": {
               "type": "string",
-              "enum": [
-                "comma",
-                "tab",
-                "pipe"
-              ],
+              "enum": ["comma", "tab", "pipe"],
               "default": "comma"
             },
             "indent": {
@@ -220,6 +80,10 @@
               "maximum": 65535,
               "default": 3100
             },
+            "publicUrl": {
+              "type": "string",
+              "format": "uri"
+            },
             "auth": {
               "type": "object",
               "properties": {
@@ -230,10 +94,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "username",
-                "passwordHash"
-              ],
+              "required": ["username", "passwordHash"],
               "additionalProperties": false
             }
           },

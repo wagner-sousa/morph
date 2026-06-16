@@ -15,14 +15,14 @@ flowchart LR
 
 ### Config Fields
 
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `type` | `"stdio"` | ✅ | |
-| `command` | string | ✅ | Executable path or name |
-| `args` | string[] | — | Command arguments (default `[]`) |
-| `env` | `Record<string,string>` | — | Environment variables, supports `${ENV_VAR}` |
-| `cwd` | string | — | Working directory |
-| `timeoutMs` | number | — | Process timeout in milliseconds |
+| Field       | Type                    | Required | Notes                                        |
+| ----------- | ----------------------- | -------- | -------------------------------------------- |
+| `type`      | `"stdio"`               | ✅       |                                              |
+| `command`   | string                  | ✅       | Executable path or name                      |
+| `args`      | string[]                | —        | Command arguments (default `[]`)             |
+| `env`       | `Record<string,string>` | —        | Environment variables, supports `${ENV_VAR}` |
+| `cwd`       | string                  | —        | Working directory                            |
+| `timeoutMs` | number                  | —        | Process timeout in milliseconds              |
 
 ### Example
 
@@ -82,12 +82,12 @@ sequenceDiagram
 
 ### Config Fields
 
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `type` | `"http"` | ✅ | |
-| `url` | string | ✅ | Server endpoint (must point to the MCP endpoint) |
-| `headers` | `Record<string,string>` | — | HTTP headers sent with every request |
-| `apiKey` | string | — | Shorthand for `Authorization: Bearer <key>` |
+| Field     | Type                    | Required | Notes                                            |
+| --------- | ----------------------- | -------- | ------------------------------------------------ |
+| `type`    | `"http"`                | ✅       |                                                  |
+| `url`     | string                  | ✅       | Server endpoint (must point to the MCP endpoint) |
+| `headers` | `Record<string,string>` | —        | HTTP headers sent with every request             |
+| `apiKey`  | string                  | —        | Shorthand for `Authorization: Bearer <key>`      |
 
 ### Example (with API key)
 
@@ -150,12 +150,12 @@ sequenceDiagram
 
 ### Config Fields
 
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `type` | `"sse"` | ✅ | |
-| `url` | string | ✅ | SSE endpoint URL |
-| `headers` | `Record<string,string>` | — | HTTP headers for both SSE and POST requests |
-| `reconnectIntervalMs` | number | — | Reconnection delay on disconnect |
+| Field                 | Type                    | Required | Notes                                       |
+| --------------------- | ----------------------- | -------- | ------------------------------------------- |
+| `type`                | `"sse"`                 | ✅       |                                             |
+| `url`                 | string                  | ✅       | SSE endpoint URL                            |
+| `headers`             | `Record<string,string>` | —        | HTTP headers for both SSE and POST requests |
+| `reconnectIntervalMs` | number                  | —        | Reconnection delay on disconnect            |
 
 ### Example
 
@@ -197,6 +197,7 @@ curl -X POST http://localhost:3101/api/mcp/demo-stdio \
 ```
 
 This is useful for:
+
 - Testing individual MCP servers
 - Programmatic access from scripts
 - Health checks and monitoring
@@ -207,8 +208,8 @@ This is useful for:
 
 The `morph.toolPrefix` field applies a prefix pattern to all exposed tool names. Placeholders:
 
-| Pattern | Result |
-|---------|--------|
+| Pattern   | Result            |
+| --------- | ----------------- |
 | `{name}_` | `demo-stdio_ping` |
 | `{name}:` | `demo-stdio:ping` |
 | `{name}/` | `demo-stdio/ping` |

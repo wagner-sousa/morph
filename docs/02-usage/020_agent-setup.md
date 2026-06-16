@@ -7,17 +7,25 @@ MORPH works with any MCP-compatible AI agent. Here is how to connect the most co
 Add a new MCP server to your `claude_desktop_config.json`:
 
 **Linux:**
+
 ```json
 {
   "mcpServers": {
     "morph": {
       "command": "docker",
       "args": [
-        "run", "--rm", "-i",
-        "-v", "/path/to/morph.json:/app/morph.json:ro",
-        "-v", "/path/to/data:/app/data",
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "/path/to/morph.json:/app/morph.json:ro",
+        "-v",
+        "/path/to/data:/app/data",
         "ghcr.io/wagner-sousa/morph:latest",
-        "morph", "start", "--transport", "stdio"
+        "morph",
+        "start",
+        "--transport",
+        "stdio"
       ]
     }
   }
@@ -25,17 +33,25 @@ Add a new MCP server to your `claude_desktop_config.json`:
 ```
 
 **macOS:**
+
 ```json
 {
   "mcpServers": {
     "morph": {
       "command": "docker",
       "args": [
-        "run", "--rm", "-i",
-        "-v", "$HOME/.morph/morph.json:/app/morph.json:ro",
-        "-v", "$HOME/.morph/data:/app/data",
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "$HOME/.morph/morph.json:/app/morph.json:ro",
+        "-v",
+        "$HOME/.morph/data:/app/data",
         "ghcr.io/wagner-sousa/morph:latest",
-        "morph", "start", "--transport", "stdio"
+        "morph",
+        "start",
+        "--transport",
+        "stdio"
       ]
     }
   }
@@ -43,17 +59,25 @@ Add a new MCP server to your `claude_desktop_config.json`:
 ```
 
 **Windows:**
+
 ```json
 {
   "mcpServers": {
     "morph": {
       "command": "docker",
       "args": [
-        "run", "--rm", "-i",
-        "-v", "C:\\Users\\You\\.morph\\morph.json:/app/morph.json:ro",
-        "-v", "C:\\Users\\You\\.morph\\data:/app/data",
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "C:\\Users\\You\\.morph\\morph.json:/app/morph.json:ro",
+        "-v",
+        "C:\\Users\\You\\.morph\\data:/app/data",
         "ghcr.io/wagner-sousa/morph:latest",
-        "morph", "start", "--transport", "stdio"
+        "morph",
+        "start",
+        "--transport",
+        "stdio"
       ]
     }
   }
@@ -75,11 +99,18 @@ Add to `.vscode/mcp.json` in your workspace:
       "type": "stdio",
       "command": "docker",
       "args": [
-        "run", "--rm", "-i",
-        "-v", "${workspaceFolder}/morph.json:/app/morph.json:ro",
-        "-v", "${workspaceFolder}/data:/app/data",
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "${workspaceFolder}/morph.json:/app/morph.json:ro",
+        "-v",
+        "${workspaceFolder}/data:/app/data",
         "ghcr.io/wagner-sousa/morph:latest",
-        "morph", "start", "--transport", "stdio"
+        "morph",
+        "start",
+        "--transport",
+        "stdio"
       ]
     }
   }
@@ -99,11 +130,18 @@ Cursor uses the same `mcp.json` format as VS Code. Place the file at `.cursor/mc
       "type": "stdio",
       "command": "docker",
       "args": [
-        "run", "--rm", "-i",
-        "-v", "${workspaceFolder}/morph.json:/app/morph.json:ro",
-        "-v", "${workspaceFolder}/data:/app/data",
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "${workspaceFolder}/morph.json:/app/morph.json:ro",
+        "-v",
+        "${workspaceFolder}/data:/app/data",
         "ghcr.io/wagner-sousa/morph:latest",
-        "morph", "start", "--transport", "stdio"
+        "morph",
+        "start",
+        "--transport",
+        "stdio"
       ]
     }
   }
@@ -155,10 +193,10 @@ claude --mcp '{
 
 The `--transport` flag controls how MORPH talks to the agent:
 
-| Transport | Flag | Use Case |
-|-----------|------|----------|
-| STDIO | `--transport stdio` | Claude Desktop, VS Code, Cursor, CLI agents |
-| HTTP | `--transport http` | Remote agents, Web UI (MORPH Studio) |
+| Transport | Flag                | Use Case                                    |
+| --------- | ------------------- | ------------------------------------------- |
+| STDIO     | `--transport stdio` | Claude Desktop, VS Code, Cursor, CLI agents |
+| HTTP      | `--transport http`  | Remote agents, Web UI (MORPH Studio)        |
 
 ### Named MCP scoping
 
@@ -195,10 +233,10 @@ MORPH can import existing MCP configurations from other tools:
 morph import --from ~/.config/Claude/claude_desktop_config.json
 
 # Import from VS Code workspace
-morph import --from .vscode/mcp.json --merge ./morph.json
+morph import --from .vscode/mcp.json --merge ./.mcp.json
 
 # Preview without writing
-morph import --from ~/.copilot/mcp-config.json --dry-run
+morph import --from other/.mcp.json --dry-run
 ```
 
 See the [Configuration](010_configuration.md#importing-existing-configs) page for details.

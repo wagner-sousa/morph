@@ -1,20 +1,14 @@
-import { Link } from '@tanstack/react-router';
-import {
-  Activity,
-  Container,
-  Gauge,
-  Settings,
-  Terminal,
-} from 'lucide-react';
-import { useWebSocket } from '../lib/ws';
-import { cn } from '../lib/utils';
+import { Link } from "@tanstack/react-router";
+import { Activity, Container, Gauge, Settings, Terminal } from "lucide-react";
+import { useWebSocket } from "../lib/ws";
+import { cn } from "../lib/utils";
 
 const nav = [
-  { to: '/', label: 'Dashboard', icon: Gauge },
-  { to: '/mcps', label: 'MCPs', icon: Container },
-  { to: '/logs', label: 'Logs', icon: Terminal },
-  { to: '/stats', label: 'Stats', icon: Activity },
-  { to: '/settings', label: 'Settings', icon: Settings },
+  { to: "/", label: "Dashboard", icon: Gauge },
+  { to: "/mcps", label: "MCPs", icon: Container },
+  { to: "/logs", label: "Logs", icon: Terminal },
+  { to: "/stats", label: "Stats", icon: Activity },
+  { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {
@@ -27,8 +21,8 @@ export function Sidebar() {
         <span className="text-xs text-morph-muted">Studio</span>
         <span
           className={cn(
-            'ml-auto h-2 w-2 rounded-full',
-            live ? 'bg-green-400' : 'bg-red-500',
+            "ml-auto h-2 w-2 rounded-full",
+            live ? "bg-green-400" : "bg-red-500",
           )}
         />
       </div>
@@ -38,9 +32,11 @@ export function Sidebar() {
             key={to}
             to={to}
             className={cn(
-              'flex items-center gap-3 rounded-md px-3 py-2 text-sm text-morph-muted transition-colors hover:bg-morph-bg hover:text-morph-text',
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm text-morph-muted transition-colors hover:bg-morph-bg hover:text-morph-text",
             )}
-            activeProps={{ className: 'bg-morph-bg text-morph-text font-medium' }}
+            activeProps={{
+              className: "bg-morph-bg text-morph-text font-medium",
+            }}
           >
             <Icon className="h-4 w-4" />
             {label}

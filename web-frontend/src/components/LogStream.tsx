@@ -1,9 +1,16 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { type LogEntry } from '../lib/api';
-import { type WsMessage, useWebSocket } from '../lib/ws';
-import { Badge } from './ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { type LogEntry } from "../lib/api";
+import { type WsMessage, useWebSocket } from "../lib/ws";
+import { Badge } from "./ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
 
 interface LogStreamProps {
   initial: LogEntry[];
@@ -11,9 +18,12 @@ interface LogStreamProps {
 
 const levelVariant = (lvl: string) => {
   switch (lvl) {
-    case 'error': return 'destructive' as const;
-    case 'warn': return 'warning' as const;
-    default: return 'secondary' as const;
+    case "error":
+      return "destructive" as const;
+    case "warn":
+      return "warning" as const;
+    default:
+      return "secondary" as const;
   }
 };
 
@@ -26,7 +36,7 @@ export function LogStream({ initial }: LogStreamProps) {
   }, [initial]);
 
   const onWs = (msg: WsMessage) => {
-    if (msg.channel === 'logs') {
+    if (msg.channel === "logs") {
       setLogs((prev) => [msg.data as LogEntry, ...prev].slice(0, 50));
     }
   };
@@ -50,7 +60,12 @@ export function LogStream({ initial }: LogStreamProps) {
             <TableRow
               key={l.id}
               className="cursor-pointer hover:bg-morph-bg-alt/50"
-              onClick={() => navigate({ to: '/logs/$id', params: { id: String(l.id) } })}
+              onClick={() => {
+                void navigate({
+                  to: "/logs/$id",
+                  params: { id: String(l.id) },
+                });
+              }}
             >
               <TableCell className="text-morph-muted text-xs">
                 {new Date(l.createdAt).toLocaleTimeString()}
@@ -60,8 +75,12 @@ export function LogStream({ initial }: LogStreamProps) {
               <TableCell>
                 <Badge variant={levelVariant(l.level)}>{l.level}</Badge>
               </TableCell>
-              <TableCell>{l.durationMs != null ? `${l.durationMs}ms` : '—'}</TableCell>
-              <TableCell>{l.tokensSaved ? `${l.tokensSaved}` : '—'}</TableCell>
+              <TableCell>
+                {l.durationMs != null ? `${String(l.durationMs)}ms` : "—"}
+              </TableCell>
+              <TableCell>
+                {l.tokensSaved ? String(l.tokensSaved) : "—"}
+              </TableCell>
             </TableRow>
           ))}
           {logs.length === 0 && (

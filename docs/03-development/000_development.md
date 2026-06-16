@@ -103,7 +103,7 @@ src/
 ├── toon/                 Converter + optimizer + savings stats
 ├── health/               Periodic backend ping
 ├── mcp-server/           Agent-facing MCP server + built-in tools
-├── import/               Claude/VS Code/Copilot config importers
+├── import/               Claude/VS Code config importers
 ├── persistence/          SQLite store (logs + call stats)
 ├── examples/             Demo MCP servers (stdio, http, sse, oauth, params)
 └── web/                  Fastify REST API + WebSocket + static Studio

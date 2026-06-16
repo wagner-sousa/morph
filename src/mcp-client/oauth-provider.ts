@@ -1,6 +1,13 @@
-import type { OAuthClientProvider, OAuthDiscoveryState } from '@modelcontextprotocol/sdk/client/auth.js';
-import type { OAuthClientInformationMixed, OAuthClientMetadata, OAuthTokens } from '@modelcontextprotocol/sdk/shared/auth.js';
-import { OAuthStore } from './oauth-store.js';
+import type {
+  OAuthClientProvider,
+  OAuthDiscoveryState,
+} from "@modelcontextprotocol/sdk/client/auth.js";
+import type {
+  OAuthClientInformationMixed,
+  OAuthClientMetadata,
+  OAuthTokens,
+} from "@modelcontextprotocol/sdk/shared/auth.js";
+import { OAuthStore } from "./oauth-store.js";
 
 export class MorphOAuthProvider implements OAuthClientProvider {
   private resolveRedirect: ((url: URL) => void) | undefined;
@@ -10,7 +17,7 @@ export class MorphOAuthProvider implements OAuthClientProvider {
     private readonly mcpName: string,
     private readonly store: OAuthStore,
     private readonly baseUrl: string,
-  ) { }
+  ) {}
 
   get redirectUrl(): string | URL {
     return `${this.baseUrl}/api/mcps/${this.mcpName}/oauth/callback`;
@@ -18,21 +25,23 @@ export class MorphOAuthProvider implements OAuthClientProvider {
 
   get clientMetadata(): OAuthClientMetadata {
     return {
-      redirect_uris: [String(this.redirectUrl)] as unknown as [string, ...string[]],
+      redirect_uris: [String(this.redirectUrl)],
       client_name: `Morph-${this.mcpName}`,
     };
   }
 
-  async clientInformation(): Promise<OAuthClientInformationMixed | undefined> {
-    return this.store.get(this.mcpName)?.clientInformation;
+  clientInformation(): Promise<OAuthClientInformationMixed | undefined> {
+    return Promise.resolve(this.store.get(this.mcpName)?.clientInformation);
   }
 
-  async saveClientInformation(info: OAuthClientInformationMixed): Promise<void> {
+  async saveClientInformation(
+    info: OAuthClientInformationMixed,
+  ): Promise<void> {
     await this.store.set(this.mcpName, { clientInformation: info });
   }
 
-  async tokens(): Promise<OAuthTokens | undefined> {
-    return this.store.get(this.mcpName)?.tokens;
+  tokens(): Promise<OAuthTokens | undefined> {
+    return Promise.resolve(this.store.get(this.mcpName)?.tokens);
   }
 
   async saveTokens(tokens: OAuthTokens): Promise<void> {
@@ -56,10 +65,12 @@ export class MorphOAuthProvider implements OAuthClientProvider {
     return this.store.set(this.mcpName, { codeVerifier });
   }
 
-  async codeVerifier(): Promise<string> {
+  codeVerifier(): Promise<string> {
     const v = this.store.get(this.mcpName)?.codeVerifier;
-    if (!v) throw new Error('No PKCE code verifier found');
-    return v;
+    if (!v) {
+      return Promise.reject(new Error("No PKCE code verifier found"));
+    }
+    return Promise.resolve(v);
   }
 
   async saveDiscoveryState(state: OAuthDiscoveryState): Promise<void> {
@@ -69,21 +80,23 @@ export class MorphOAuthProvider implements OAuthClientProvider {
     });
   }
 
-  async discoveryState(): Promise<OAuthDiscoveryState | undefined> {
+  discoveryState(): Promise<OAuthDiscoveryState | undefined> {
     const s = this.store.get(this.mcpName);
-    if (!s?.authorizationServerUrl) return undefined;
-    return {
+    if (!s?.authorizationServerUrl) return Promise.resolve(undefined);
+    return Promise.resolve({
       authorizationServerUrl: s.authorizationServerUrl,
       resourceMetadataUrl: s.resourceMetadataUrl,
-    };
+    });
   }
 
-  async invalidateCredentials(scope: 'all' | 'client' | 'tokens' | 'verifier' | 'discovery'): Promise<void> {
+  async invalidateCredentials(
+    scope: "all" | "client" | "tokens" | "verifier" | "discovery",
+  ): Promise<void> {
     switch (scope) {
-      case 'all':
+      case "all":
         await this.store.delete(this.mcpName);
         break;
-      case 'tokens':
+      case "tokens":
         {
           const existing = this.store.get(this.mcpName);
           if (existing) {
@@ -92,10 +105,10 @@ export class MorphOAuthProvider implements OAuthClientProvider {
           }
         }
         break;
-      case 'verifier':
+      case "verifier":
         await this.store.clearPending(this.mcpName);
         break;
-      case 'client':
+      case "client":
         {
           const existing = this.store.get(this.mcpName);
           if (existing) {
@@ -104,7 +117,7 @@ export class MorphOAuthProvider implements OAuthClientProvider {
           }
         }
         break;
-      case 'discovery':
+      case "discovery":
         {
           const existing = this.store.get(this.mcpName);
           if (existing) {

@@ -6,23 +6,23 @@ All core features are implemented and tested:
 
 ### ✅ Completed
 
-| Area | Status | Details |
-|------|--------|---------|
-| MCP Client Layer | ✅ | STDIO, HTTP (Streamable), SSE transports |
-| OAuth Support | ✅ | PKCE flow, Dynamic Client Registration, token persistence |
-| Tool Router | ✅ | Name resolution, conflict auto-prefix, aliases |
-| TOON Converter | ✅ | JSON→TOON, optimizer (uniform array, depth), savings stats |
-| Config System | ✅ | Zod schema, `${ENV}` resolution, hot-reload watcher |
-| Web API | ✅ | Fastify REST + WebSocket, OAuth routes |
-| SQLite Persistence | ✅ | Logs, call stats, savings history, totalizers |
-| In-memory Log Store | ✅ | Circular buffer, ID-synced with SQLite |
-| Web UI (Morph Studio) | ✅ | Dashboard, MCP CRUD, Logs, Stats, Settings |
-| Log Detail | ✅ | JSON vs TOON side-by-side, token savings, split view |
-| MCP Tools Modal | ✅ | Tool listing with JSON/TOON toggle |
-| Built-in Tools | ✅ | `_morph_status`, `_morph_toon_stats`, `_morph_reload_config` |
-| Demo MCP Servers | ✅ | STDIO, HTTP, SSE, HTTP+OAuth, STDIO+params |
-| Tests | ✅ | 124+ tests across 16 files |
-| Docker | ✅ | Multi-stage Dockerfile, dev compose, production compose |
+| Area                  | Status | Details                                                      |
+| --------------------- | ------ | ------------------------------------------------------------ |
+| MCP Client Layer      | ✅     | STDIO, HTTP (Streamable), SSE transports                     |
+| OAuth Support         | ✅     | PKCE flow, Dynamic Client Registration, token persistence    |
+| Tool Router           | ✅     | Name resolution, conflict auto-prefix, aliases               |
+| TOON Converter        | ✅     | JSON→TOON, optimizer (uniform array, depth), savings stats   |
+| Config System         | ✅     | Zod schema, `${ENV}` resolution, hot-reload watcher          |
+| Web API               | ✅     | Fastify REST + WebSocket, OAuth routes                       |
+| SQLite Persistence    | ✅     | Logs, call stats, savings history, totalizers                |
+| In-memory Log Store   | ✅     | Circular buffer, ID-synced with SQLite                       |
+| Web UI (Morph Studio) | ✅     | Dashboard, MCP CRUD, Logs, Stats, Settings                   |
+| Log Detail            | ✅     | JSON vs TOON side-by-side, token savings, split view         |
+| MCP Tools Modal       | ✅     | Tool listing with JSON/TOON toggle                           |
+| Built-in Tools        | ✅     | `_morph_status`, `_morph_toon_stats`, `_morph_reload_config` |
+| Demo MCP Servers      | ✅     | STDIO, HTTP, SSE, HTTP+OAuth, STDIO+params                   |
+| Tests                 | ✅     | 124+ tests across 16 files                                   |
+| Docker                | ✅     | Multi-stage Dockerfile, dev compose, production compose      |
 
 ### Architecture Overview
 
@@ -99,13 +99,13 @@ sequenceDiagram
 
 ### Ports
 
-| Service | Port | Purpose |
-|---------|------|---------|
-| Backend API | 3101 | Fastify REST + WebSocket |
+| Service        | Port | Purpose                                           |
+| -------------- | ---- | ------------------------------------------------- |
+| Backend API    | 3101 | Fastify REST + WebSocket                          |
 | Frontend (dev) | 5173 | Vite dev server (proxies /api and /ws to backend) |
-| Demo HTTP MCP | 3200 | Demo MCP via HTTP |
-| Demo SSE MCP | 3201 | Demo MCP via SSE |
-| Demo OAuth MCP | 3202 | Demo MCP via HTTP + OAuth |
+| Demo HTTP MCP  | 3200 | Demo MCP via HTTP                                 |
+| Demo SSE MCP   | 3201 | Demo MCP via SSE                                  |
+| Demo OAuth MCP | 3202 | Demo MCP via HTTP + OAuth                         |
 
 ### Test Coverage
 
@@ -184,16 +184,19 @@ gantt
 ```
 
 ### Short-term
+
 - [ ] Web UI Basic Auth configuration page
 - [ ] Batch tool call execution
 - [ ] Export logs as JSON/CSV
 
 ### Medium-term
+
 - [ ] Multi-user support with API keys
 - [ ] Prometheus metrics endpoint
 - [ ] TOON conversion preview in Web UI
 
 ### Long-term
+
 - [ ] Plugin system for custom converters
 - [ ] Distributed mode (multiple MORPH instances)
 - [ ] AI-powered TOON optimization suggestions

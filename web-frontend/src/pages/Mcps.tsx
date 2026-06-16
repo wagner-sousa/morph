@@ -1,11 +1,22 @@
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { Loader2, Plus } from 'lucide-react';
-import { api, type MCPConfig, type MCPStatus, type MCPTransport } from '../lib/api';
-import { useAddMcp, useDeleteMcp, useMcps, useRestartMcp, useUpdateMcp } from '../hooks/useMcps';
-import { MCPCard } from '../components/MCPCard';
-import { MCPToolsModal } from '../components/MCPToolsModal';
-import { Button } from '../components/ui/button';
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Loader2, Plus } from "lucide-react";
+import {
+  api,
+  type MCPConfig,
+  type MCPStatus,
+  type MCPTransport,
+} from "../lib/api";
+import {
+  useAddMcp,
+  useDeleteMcp,
+  useMcps,
+  useRestartMcp,
+  useUpdateMcp,
+} from "../hooks/useMcps";
+import { MCPCard } from "../components/MCPCard";
+import { MCPToolsModal } from "../components/MCPToolsModal";
+import { Button } from "../components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -13,19 +24,19 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '../components/ui/dialog';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Select } from '../components/ui/select';
-import { Switch } from '../components/ui/switch';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Controller, useForm } from 'react-hook-form';
-import { z } from 'zod';
+} from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Select } from "../components/ui/select";
+import { Switch } from "../components/ui/switch";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
 
 const mcpSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
-  transport: z.enum(['stdio', 'http', 'sse']),
+  transport: z.enum(["stdio", "http", "sse"]),
   command: z.string().optional(),
   args: z.string().optional(),
   url: z.string().optional(),
@@ -43,34 +54,42 @@ const mcpSchema = z.object({
 type MCPForm = z.infer<typeof mcpSchema>;
 
 const defaultValues: MCPForm = {
-  name: '',
-  description: '',
-  transport: 'stdio',
-  command: '',
-  args: '',
-  url: '',
-  env: '',
-  headers: '',
-  labels: '',
-  aliases: '',
-  cwd: '',
+  name: "",
+  description: "",
+  transport: "stdio",
+  command: "",
+  args: "",
+  url: "",
+  env: "",
+  headers: "",
+  labels: "",
+  aliases: "",
+  cwd: "",
   timeoutMs: undefined,
-  apiKey: '',
+  apiKey: "",
   reconnectIntervalMs: undefined,
   enabled: true,
 };
 
 function parseLines(text: string): Record<string, string> {
   return Object.fromEntries(
-    text.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
-      const i = l.indexOf('=');
-      return i === -1 ? [l, ''] : [l.slice(0, i), l.slice(i + 1)];
-    }),
+    text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((l) => {
+        const i = l.indexOf("=");
+        return i === -1 ? [l, ""] : [l.slice(0, i), l.slice(i + 1)];
+      }),
   );
 }
 
 function joinLines(obj?: Record<string, string>): string {
-  return obj ? Object.entries(obj).map(([k, v]) => `${k}=${v}`).join('\n') : '';
+  return obj
+    ? Object.entries(obj)
+        .map(([k, v]) => `${k}=${v}`)
+        .join("\n")
+    : "";
 }
 
 function MCPFormDialog({
@@ -98,7 +117,7 @@ function MCPFormDialog({
     defaultValues: initial ?? defaultValues,
   });
 
-  const transport = watch('transport');
+  const transport = watch("transport");
 
   useEffect(() => {
     if (open) reset(initial ?? defaultValues);
@@ -114,108 +133,167 @@ function MCPFormDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-        <form onSubmit={handleSubmit(handleFormSubmit)}>
+        <form
+          onSubmit={(e) => {
+            void handleSubmit(handleFormSubmit)(e);
+          }}
+        >
           <DialogHeader>
-            <DialogTitle>{initial ? 'Edit MCP' : 'Add MCP'}</DialogTitle>
+            <DialogTitle>{initial ? "Edit MCP" : "Add MCP"}</DialogTitle>
             <DialogDescription>
               {oauthPending
-                ? 'Waiting for OAuth authorization in your browser...'
-                : 'Configure an MCP server backend.'}
+                ? "Waiting for OAuth authorization in your browser..."
+                : "Configure an MCP server backend."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
-              <Input id="name" {...register('name')} placeholder="my-server" />
-              {errors.name && <p className="text-xs text-red-400">{errors.name.message}</p>}
+              <Input id="name" {...register("name")} placeholder="my-server" />
+              {errors.name && (
+                <p className="text-xs text-red-400">{errors.name.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
-              <Input id="description" {...register('description')} placeholder="What this MCP does" />
+              <Input
+                id="description"
+                {...register("description")}
+                placeholder="What this MCP does"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="transport">Transport</Label>
               <Select
                 id="transport"
-                {...register('transport')}
+                {...register("transport")}
                 options={[
-                  { value: 'stdio', label: 'STDIO' },
-                  { value: 'http', label: 'HTTP' },
-                  { value: 'sse', label: 'SSE' },
+                  { value: "stdio", label: "STDIO" },
+                  { value: "http", label: "HTTP" },
+                  { value: "sse", label: "SSE" },
                 ]}
               />
             </div>
-            {transport === 'stdio' && (
+            {transport === "stdio" && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="command">Command *</Label>
-                  <Input id="command" {...register('command')} placeholder="npx" />
+                  <Input
+                    id="command"
+                    {...register("command")}
+                    placeholder="npx"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="args">Arguments</Label>
-                  <Input id="args" {...register('args')} placeholder="-y @modelcontextprotocol/server-filesystem /path" />
+                  <Input
+                    id="args"
+                    {...register("args")}
+                    placeholder="-y @modelcontextprotocol/server-filesystem /path"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cwd">Working Directory (cwd)</Label>
-                  <Input id="cwd" {...register('cwd')} placeholder="/opt/mcp-server" />
+                  <Input
+                    id="cwd"
+                    {...register("cwd")}
+                    placeholder="/opt/mcp-server"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="env">Environment Variables</Label>
                   <textarea
                     id="env"
                     className="flex min-h-[80px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-sm font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
-                    {...register('env')}
-                    placeholder={"STRIPE_API_KEY=sk_test_...\nOPENAI_API_KEY=sk-..."}
+                    {...register("env")}
+                    placeholder={
+                      "STRIPE_API_KEY=sk_test_...\nOPENAI_API_KEY=sk-..."
+                    }
                   />
-                  <p className="text-xs text-morph-muted">One KEY=VALUE per line</p>
+                  <p className="text-xs text-morph-muted">
+                    One KEY=VALUE per line
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="timeoutMs">Timeout (ms)</Label>
-                  <Input id="timeoutMs" type="number" {...register('timeoutMs')} placeholder="30000" />
+                  <Input
+                    id="timeoutMs"
+                    type="number"
+                    {...register("timeoutMs")}
+                    placeholder="30000"
+                  />
                 </div>
               </>
             )}
-            {transport === 'http' && (
+            {transport === "http" && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="url">URL *</Label>
-                  <Input id="url" {...register('url')} placeholder="http://..." />
+                  <Input
+                    id="url"
+                    {...register("url")}
+                    placeholder="http://..."
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="apiKey">API Key</Label>
-                  <Input id="apiKey" {...register('apiKey')} placeholder="sk-..." type="password" />
+                  <Input
+                    id="apiKey"
+                    {...register("apiKey")}
+                    placeholder="sk-..."
+                    type="password"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="headers">Headers</Label>
                   <textarea
                     id="headers"
                     className="flex min-h-[80px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-sm font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
-                    {...register('headers')}
-                    placeholder={"Authorization=Bearer sk_test_...\nX-Custom=value"}
+                    {...register("headers")}
+                    placeholder={
+                      "Authorization=Bearer sk_test_...\nX-Custom=value"
+                    }
                   />
-                  <p className="text-xs text-morph-muted">One Header=Value per line</p>
+                  <p className="text-xs text-morph-muted">
+                    One Header=Value per line
+                  </p>
                 </div>
               </>
             )}
-            {transport === 'sse' && (
+            {transport === "sse" && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="url">URL *</Label>
-                  <Input id="url" {...register('url')} placeholder="http://..." />
+                  <Input
+                    id="url"
+                    {...register("url")}
+                    placeholder="http://..."
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="headers">Headers</Label>
                   <textarea
                     id="headers"
                     className="flex min-h-[80px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-sm font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
-                    {...register('headers')}
-                    placeholder={"Authorization=Bearer sk_test_...\nX-Custom=value"}
+                    {...register("headers")}
+                    placeholder={
+                      "Authorization=Bearer sk_test_...\nX-Custom=value"
+                    }
                   />
-                  <p className="text-xs text-morph-muted">One Header=Value per line</p>
+                  <p className="text-xs text-morph-muted">
+                    One Header=Value per line
+                  </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="reconnectIntervalMs">Reconnect Interval (ms)</Label>
-                  <Input id="reconnectIntervalMs" type="number" {...register('reconnectIntervalMs')} placeholder="5000" />
+                  <Label htmlFor="reconnectIntervalMs">
+                    Reconnect Interval (ms)
+                  </Label>
+                  <Input
+                    id="reconnectIntervalMs"
+                    type="number"
+                    {...register("reconnectIntervalMs")}
+                    placeholder="5000"
+                  />
                 </div>
               </>
             )}
@@ -224,7 +302,7 @@ function MCPFormDialog({
               <textarea
                 id="labels"
                 className="flex min-h-[60px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-sm font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
-                {...register('labels')}
+                {...register("labels")}
                 placeholder={"team=engineering\ntype=production"}
               />
               <p className="text-xs text-morph-muted">One KEY=VALUE per line</p>
@@ -234,17 +312,23 @@ function MCPFormDialog({
               <textarea
                 id="aliases"
                 className="flex min-h-[60px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-sm font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
-                {...register('aliases')}
+                {...register("aliases")}
                 placeholder={"read_file=fs_read\nwrite_file=fs_write"}
               />
-              <p className="text-xs text-morph-muted">One original_name=alias per line</p>
+              <p className="text-xs text-morph-muted">
+                One original_name=alias per line
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Controller
                 name="enabled"
                 control={control}
                 render={({ field }) => (
-                  <Switch id="enabled" checked={field.value} onCheckedChange={field.onChange} />
+                  <Switch
+                    id="enabled"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
                 )}
               />
               <Label htmlFor="enabled">Enabled</Label>
@@ -258,7 +342,13 @@ function MCPFormDialog({
           )}
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting || !!oauthPending}>
-              {isSubmitting ? 'Saving...' : oauthPending ? 'Waiting...' : (initial ? 'Save' : 'Add')}
+              {isSubmitting
+                ? "Saving..."
+                : oauthPending
+                  ? "Waiting..."
+                  : initial
+                    ? "Save"
+                    : "Add"}
             </Button>
           </DialogFooter>
         </form>
@@ -268,10 +358,10 @@ function MCPFormDialog({
 }
 
 function buildTransport(data: MCPForm): MCPTransport {
-  if (data.transport === 'stdio') {
+  if (data.transport === "stdio") {
     const transport: MCPTransport = {
-      type: 'stdio',
-      command: data.command!,
+      type: "stdio",
+      command: data.command ?? "",
       args: data.args ? data.args.split(/\s+/) : [],
     };
     if (data.env) transport.env = parseLines(data.env);
@@ -279,10 +369,14 @@ function buildTransport(data: MCPForm): MCPTransport {
     if (data.timeoutMs) transport.timeoutMs = data.timeoutMs;
     return transport;
   }
-  const base = { type: data.transport as 'http' | 'sse', url: data.url! };
-  if (data.headers) (base as Record<string, unknown>).headers = parseLines(data.headers);
-  if (data.transport === 'http' && data.apiKey) (base as Record<string, unknown>).apiKey = data.apiKey;
-  if (data.transport === 'sse' && data.reconnectIntervalMs) (base as Record<string, unknown>).reconnectIntervalMs = data.reconnectIntervalMs;
+  const base = { type: data.transport, url: data.url ?? "" };
+  if (data.headers)
+    (base as Record<string, unknown>).headers = parseLines(data.headers);
+  if (data.transport === "http" && data.apiKey)
+    (base as Record<string, unknown>).apiKey = data.apiKey;
+  if (data.transport === "sse" && data.reconnectIntervalMs)
+    (base as Record<string, unknown>).reconnectIntervalMs =
+      data.reconnectIntervalMs;
   return base;
 }
 
@@ -299,10 +393,13 @@ export function Mcps() {
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
-      if (e.data?.type === 'mcp-oauth') setOauthAdding(null);
+      const data = e.data as { type?: string } | null;
+      if (data?.type === "mcp-oauth") setOauthAdding(null);
     };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
+    window.addEventListener("message", handler);
+    return () => {
+      window.removeEventListener("message", handler);
+    };
   }, []);
 
   const handleAdd = async (data: MCPForm) => {
@@ -324,23 +421,45 @@ export function Mcps() {
       return;
     }
     await new Promise<void>((resolve) => {
-      setTimeout(async () => {
-        const oauthStatus = await api.oauthStatus(name).catch(() => null);
-        if (oauthStatus?.oauthNeeded && oauthStatus.oauthUrl) {
-          setOauthAdding(name);
-          const popup = window.open(oauthStatus.oauthUrl, 'oauth', 'width=600,height=700');
-          if (popup) {
-            const timer = setInterval(async () => {
-              if (popup.closed) { clearInterval(timer); setOauthAdding(null); resolve(); return; }
-              const status = await api.oauthStatus(name).catch(() => null);
-              if (status?.authorized || status?.oauthHasToken) { clearInterval(timer); popup.close(); setOauthAdding(null); resolve(); }
-            }, 1000);
-            setTimeout(() => { clearInterval(timer); setOauthAdding(null); resolve(); }, 120000);
-            return;
+      setTimeout(() => {
+        void (async () => {
+          const oauthStatus = await api.oauthStatus(name).catch(() => null);
+          if (oauthStatus?.oauthNeeded && oauthStatus.oauthUrl) {
+            setOauthAdding(name);
+            const popup = window.open(
+              oauthStatus.oauthUrl,
+              "oauth",
+              "width=600,height=700",
+            );
+            if (popup) {
+              const timer = setInterval(() => {
+                void (async () => {
+                  if (popup.closed) {
+                    clearInterval(timer);
+                    setOauthAdding(null);
+                    resolve();
+                    return;
+                  }
+                  const status = await api.oauthStatus(name).catch(() => null);
+                  if (status?.authorized || status?.oauthHasToken) {
+                    clearInterval(timer);
+                    popup.close();
+                    setOauthAdding(null);
+                    resolve();
+                  }
+                })();
+              }, 1000);
+              setTimeout(() => {
+                clearInterval(timer);
+                setOauthAdding(null);
+                resolve();
+              }, 120000);
+              return;
+            }
+            setOauthAdding(null);
           }
-          setOauthAdding(null);
-        }
-        resolve();
+          resolve();
+        })();
       }, 1000);
     });
   };
@@ -352,23 +471,42 @@ export function Mcps() {
 
   const handleEditClick = async (name: string) => {
     const cfg = await api.mcpConfig(name);
-    if (!cfg) { toast.error(`Config not found for "${name}"`); return; }
+    if (!cfg) {
+      toast.error(`Config not found for "${name}"`);
+      return;
+    }
     const t = cfg.transport;
     const form: MCPForm = {
       name: cfg.name,
-      description: cfg.description ?? '',
+      description: cfg.description ?? "",
       transport: t.type,
-      command: t.type === 'stdio' ? (t as { command: string }).command : '',
-      args: t.type === 'stdio' ? ((t as { args?: string[] }).args ?? []).join(' ') : '',
-      url: t.type !== 'stdio' ? t.url : '',
-      env: t.type === 'stdio' ? joinLines((t as { env?: Record<string, string> }).env) : '',
-      headers: t.type !== 'stdio' ? joinLines((t as { headers?: Record<string, string> }).headers) : '',
+      command: t.type === "stdio" ? (t as { command: string }).command : "",
+      args:
+        t.type === "stdio"
+          ? ((t as { args?: string[] }).args ?? []).join(" ")
+          : "",
+      url: t.type !== "stdio" ? t.url : "",
+      env:
+        t.type === "stdio"
+          ? joinLines((t as { env?: Record<string, string> }).env)
+          : "",
+      headers:
+        t.type !== "stdio"
+          ? joinLines((t as { headers?: Record<string, string> }).headers)
+          : "",
       labels: joinLines(cfg.labels),
       aliases: joinLines(cfg.aliases),
-      cwd: t.type === 'stdio' ? ((t as { cwd?: string }).cwd ?? '') : '',
-      timeoutMs: t.type === 'stdio' ? ((t as { timeoutMs?: number }).timeoutMs) : undefined,
-      apiKey: t.type === 'http' ? ((t as { apiKey?: string }).apiKey ?? '') : '',
-      reconnectIntervalMs: t.type === 'sse' ? ((t as { reconnectIntervalMs?: number }).reconnectIntervalMs) : undefined,
+      cwd: t.type === "stdio" ? ((t as { cwd?: string }).cwd ?? "") : "",
+      timeoutMs:
+        t.type === "stdio"
+          ? (t as { timeoutMs?: number }).timeoutMs
+          : undefined,
+      apiKey:
+        t.type === "http" ? ((t as { apiKey?: string }).apiKey ?? "") : "",
+      reconnectIntervalMs:
+        t.type === "sse"
+          ? (t as { reconnectIntervalMs?: number }).reconnectIntervalMs
+          : undefined,
       enabled: cfg.enabled,
     };
     setEditingConfig(form);
@@ -404,14 +542,22 @@ export function Mcps() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">MCP Servers</h1>
-        <Button onClick={() => { setEditingConfig(null); setDialogOpen(true); }}>
+        <Button
+          onClick={() => {
+            setEditingConfig(null);
+            setDialogOpen(true);
+          }}
+        >
           <Plus className="h-4 w-4" /> Add MCP
         </Button>
       </div>
 
       <MCPFormDialog
         open={dialogOpen}
-        onOpenChange={(v) => { setDialogOpen(v); if (!v) setEditingConfig(null); }}
+        onOpenChange={(v) => {
+          setDialogOpen(v);
+          if (!v) setEditingConfig(null);
+        }}
         initial={editingConfig ?? undefined}
         onSubmit={editingConfig ? handleUpdate : handleAdd}
         oauthPending={oauthAdding}
@@ -419,14 +565,37 @@ export function Mcps() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {mcps?.map((m) => (
-          <MCPCard key={m.name} mcp={m} onDelete={handleDelete} onRestart={(name) => restartMcp.mutateAsync(name)} onTools={() => setToolsMcp(m)} onEdit={handleEditClick} />
+          <MCPCard
+            key={m.name}
+            mcp={m}
+            onDelete={(name) => {
+              void handleDelete(name);
+            }}
+            onRestart={(name) => {
+              void restartMcp.mutateAsync(name);
+            }}
+            onTools={() => {
+              setToolsMcp(m);
+            }}
+            onEdit={(name) => {
+              void handleEditClick(name);
+            }}
+          />
         ))}
         {mcps?.length === 0 && (
-          <p className="text-sm text-morph-muted col-span-full">No MCP servers configured. Click "Add MCP" to get started.</p>
+          <p className="text-sm text-morph-muted col-span-full">
+            No MCP servers configured. Click "Add MCP" to get started.
+          </p>
         )}
       </div>
 
-      <MCPToolsModal mcp={toolsMcp} open={!!toolsMcp} onOpenChange={(v) => { if (!v) setToolsMcp(null); }} />
+      <MCPToolsModal
+        mcp={toolsMcp}
+        open={!!toolsMcp}
+        onOpenChange={(v) => {
+          if (!v) setToolsMcp(null);
+        }}
+      />
     </div>
   );
 }

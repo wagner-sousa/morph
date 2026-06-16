@@ -3,6 +3,9 @@ dist/
 data/
 *.log
 .env
+# Local instance config (use the committed *.example.json templates instead)
+/morph.json
+/.mcp.json
 .DS_Store
 coverage/
 web-frontend/node_modules/

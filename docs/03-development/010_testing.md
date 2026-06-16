@@ -34,24 +34,24 @@ npx vitest run tests/unit/hub.test.ts  # Single file
 
 ## Test Files
 
-| File | Tests | Scope |
-|------|-------|-------|
-| `tests/unit/store.test.ts` | 18 | SQLite CRUD, ID sync, totalizers |
-| `tests/unit/log-store.test.ts` | 5 | In-memory store, custom IDs, field preservation |
-| `tests/unit/hub.test.ts` | 6 | Built-in tools TOON conversion |
-| `tests/unit/demo-servers.test.ts` | 8 | STDIO/HTTP/SSE/OAuth demo server tests |
-| `tests/unit/mcp-connection.test.ts` | 6 | MCPClientRegistry lifecycle + tool calls |
-| `tests/unit/mcp-handler.test.ts` | 10 | JSON-RPC handler, error codes |
-| `tests/unit/web-server.test.ts` | 14 | Schema validation |
-| `tests/unit/toon-converter.test.ts` | 4 | TOON encode/decode |
-| `tests/unit/optimizer.test.ts` | 16 | Uniform array, max depth, decideConvert |
-| `tests/unit/router.test.ts` | 5 | Tool resolution, conflicts |
-| `tests/unit/oauth-store.test.ts` | 7 | OAuth CRUD, persistence |
-| `tests/unit/config-loader.test.ts` | 7 | Config parsing, validation |
-| `tests/unit/env-resolver.test.ts` | 5 | Environment variable resolution |
-| `tests/unit/importer.test.ts` | 4 | Config import from Claude/VS Code/Copilot |
-| `tests/unit/health-checker.test.ts` | 4 | Start/stop, refresh tools |
-| `tests/integration/tool-routing.test.ts` | 5 | Real stdio round-trip + TOON conversion |
+| File                                     | Tests | Scope                                           |
+| ---------------------------------------- | ----- | ----------------------------------------------- |
+| `tests/unit/store.test.ts`               | 18    | SQLite CRUD, ID sync, totalizers                |
+| `tests/unit/log-store.test.ts`           | 5     | In-memory store, custom IDs, field preservation |
+| `tests/unit/hub.test.ts`                 | 6     | Built-in tools TOON conversion                  |
+| `tests/unit/demo-servers.test.ts`        | 8     | STDIO/HTTP/SSE/OAuth demo server tests          |
+| `tests/unit/mcp-connection.test.ts`      | 6     | MCPClientRegistry lifecycle + tool calls        |
+| `tests/unit/mcp-handler.test.ts`         | 10    | JSON-RPC handler, error codes                   |
+| `tests/unit/web-server.test.ts`          | 14    | Schema validation                               |
+| `tests/unit/toon-converter.test.ts`      | 4     | TOON encode/decode                              |
+| `tests/unit/optimizer.test.ts`           | 16    | Uniform array, max depth, decideConvert         |
+| `tests/unit/router.test.ts`              | 5     | Tool resolution, conflicts                      |
+| `tests/unit/oauth-store.test.ts`         | 7     | OAuth CRUD, persistence                         |
+| `tests/unit/config-loader.test.ts`       | 7     | Config parsing, validation                      |
+| `tests/unit/env-resolver.test.ts`        | 5     | Environment variable resolution                 |
+| `tests/unit/importer.test.ts`            | 4     | Config import from Claude/VS Code               |
+| `tests/unit/health-checker.test.ts`      | 4     | Start/stop, refresh tools                       |
+| `tests/integration/tool-routing.test.ts` | 5     | Real stdio round-trip + TOON conversion         |
 
 ## Writing New Tests
 
@@ -60,12 +60,12 @@ npx vitest run tests/unit/hub.test.ts  # Single file
 Tests use Vitest with the standard `describe` / `it` / `expect` pattern:
 
 ```typescript
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 
-describe('MyModule', () => {
-  it('should do something', () => {
-    const result = myFunction('input');
-    expect(result).toBe('expected');
+describe("MyModule", () => {
+  it("should do something", () => {
+    const result = myFunction("input");
+    expect(result).toBe("expected");
   });
 });
 ```
@@ -75,16 +75,16 @@ describe('MyModule', () => {
 For tests that need to avoid real I/O, use Vitest mocks:
 
 ```typescript
-import { vi, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect } from "vitest";
 
 // Mock a module
-vi.mock('../src/config/loader', () => ({
+vi.mock("../src/config/loader", () => ({
   loadConfig: vi.fn().mockResolvedValue(mockConfig),
 }));
 
 // Mock a class method
 const mockConnect = vi.fn().mockResolvedValue(undefined);
-vi.spyOn(Registry.prototype, 'connect').mockImplementation(mockConnect);
+vi.spyOn(Registry.prototype, "connect").mockImplementation(mockConnect);
 ```
 
 ### Fixture MCP Server
@@ -99,9 +99,9 @@ The test suite includes a fixture MCP server at `tests/fixtures/` that supports:
 Use it in integration tests:
 
 ```typescript
-import { spawn } from 'node:child_process';
+import { spawn } from "node:child_process";
 
-const fixture = spawn('npx', ['tsx', 'tests/fixtures/test-server.ts']);
+const fixture = spawn("npx", ["tsx", "tests/fixtures/test-server.ts"]);
 ```
 
 ## CI Pipeline
@@ -124,12 +124,12 @@ Two workflows handle CI/CD:
 
 ## Code Coverage Targets
 
-| Area | Target | Current |
-|------|--------|---------|
-| Source files | 100% | 100% |
-| Statements | >90% | ~95% |
-| Branches | >85% | ~90% |
-| Functions | >90% | ~95% |
+| Area         | Target | Current |
+| ------------ | ------ | ------- |
+| Source files | 100%   | 100%    |
+| Statements   | >90%   | ~95%    |
+| Branches     | >85%   | ~90%    |
+| Functions    | >90%   | ~95%    |
 
 Run coverage locally:
 

@@ -20,6 +20,14 @@ RUN npm prune --omit=dev
 # Stage 3: runtime
 FROM node:22-bookworm-slim AS runtime
 
+# VERSION is injected by CI from the release tag (defaults to "dev" for local builds).
+# In CI, docker/metadata-action also adds the standard OCI labels automatically.
+ARG VERSION=dev
+LABEL org.opencontainers.image.title="morph" \
+      org.opencontainers.image.description="MORPH — MCP Optimized Response Protocol Handler" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.source="https://github.com/wagner-sousa/morph"
+
 # System deps commonly required by backend MCP servers (python, git, npx).
 RUN apt-get update && \
     apt-get install -y --no-install-recommends python3 git ca-certificates && \
@@ -33,10 +41,21 @@ COPY --from=backend-builder /app/dist ./dist
 COPY package.json ./
 COPY --from=frontend-builder /app/web-frontend/dist ./public
 
+# Run as the non-root `node` user shipped by the official image (UID 1000).
+# Bind-mounted volumes are mapped to the host user via the compose `user:`
+# override at runtime, so files in ./data stay owned by you.
+RUN mkdir -p /app/data && chown -R node:node /app
+
+# Single persisted folder: db, logs and (optionally) config live here.
+ENV MORPH_DATA_DIR=/app/data
+VOLUME ["/app/data"]
+
 EXPOSE 3100
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD node dist/healthcheck.js
+
+USER node
 
 # MORPH_TRANSPORT selects the agent-facing transport (stdio default).
 ENV MORPH_TRANSPORT=stdio

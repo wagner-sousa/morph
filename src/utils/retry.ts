@@ -12,17 +12,20 @@ export interface RetryOptions {
 
 export class RetryAbortedError extends Error {
   constructor() {
-    super('retry aborted');
-    this.name = 'RetryAbortedError';
+    super("retry aborted");
+    this.name = "RetryAbortedError";
   }
 }
 
 export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (signal?.aborted) return reject(new RetryAbortedError());
+    if (signal?.aborted) {
+      reject(new RetryAbortedError());
+      return;
+    }
     const timer = setTimeout(resolve, ms);
     signal?.addEventListener(
-      'abort',
+      "abort",
       () => {
         clearTimeout(timer);
         reject(new RetryAbortedError());
@@ -32,7 +35,10 @@ export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-export async function retry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
+export async function retry<T>(
+  fn: () => Promise<T>,
+  options: RetryOptions = {},
+): Promise<T> {
   const retries = options.retries ?? 3;
   const initialDelayMs = options.initialDelayMs ?? 500;
   const maxDelayMs = options.maxDelayMs ?? 10_000;

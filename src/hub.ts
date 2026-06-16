@@ -6,30 +6,31 @@
  * tool calls to backends, converts results to TOON, and applies config
  * hot-reloads.
  */
-import { EventEmitter } from 'node:events';
-import { resolve as resolvePath } from 'node:path';
-import type { Logger } from './logging/logger.js';
-import { LogStore } from './logging/store.js';
-import { Metrics } from './metrics.js';
-import { Store } from './persistence/store.js';
-import { MCPClientRegistry } from './mcp-client/registry.js';
-import { OAuthStore } from './mcp-client/oauth-store.js';
-import { Router } from './router/index.js';
-import { ToonConverter } from './toon/converter.js';
-import { HealthChecker } from './health/checker.js';
-import { getVersionInfo } from './utils/version.js';
-import { ConfigWatcher } from './config/watcher.js';
+import { EventEmitter } from "node:events";
+import { resolve as resolvePath } from "node:path";
+import type { Logger } from "./logging/logger.js";
+import { LogStore } from "./logging/store.js";
+import { Metrics } from "./metrics.js";
+import { Store } from "./persistence/store.js";
+import { MCPClientRegistry } from "./mcp-client/registry.js";
+import { OAuthStore } from "./mcp-client/oauth-store.js";
+import { Router } from "./router/index.js";
+import { ToonConverter } from "./toon/converter.js";
+import { HealthChecker } from "./health/checker.js";
+import { getVersionInfo } from "./utils/version.js";
+import { ConfigWatcher } from "./config/watcher.js";
 import {
   BUILTIN_TOOLS,
   BUILTIN_TOOL_NAMES,
   isBuiltinTool,
-} from './mcp-server/builtin-tools.js';
-import type { CallToolResult, Tool } from './mcp-client/types.js';
-import type { MorphConfig, MCPDefinition } from './config/types.js';
+} from "./mcp-server/builtin-tools.js";
+import type { CallToolResult, Tool } from "./mcp-client/types.js";
+import type { MorphConfig, MCPDefinition } from "./config/types.js";
 
 export interface HubOptions {
   config: MorphConfig;
   configPath: string;
+  mcpPath: string;
   logger: Logger;
   dataDir?: string;
 }
@@ -37,6 +38,7 @@ export interface HubOptions {
 export class Hub extends EventEmitter {
   private config: MorphConfig;
   private readonly configPath: string;
+  private readonly mcpPath: string;
   readonly logger: Logger;
   readonly registry: MCPClientRegistry;
   readonly router: Router;
@@ -55,22 +57,37 @@ export class Hub extends EventEmitter {
     super();
     this.config = options.config;
     this.configPath = resolvePath(options.configPath);
+    this.mcpPath = resolvePath(options.mcpPath);
     this.logger = options.logger;
-    this.dataDir = resolvePath(options.dataDir ?? './data');
+    this.dataDir = resolvePath(options.dataDir ?? "./data");
     this.oauthStore = new OAuthStore(this.dataDir);
-    const publicUrl = options.config.webUi?.publicUrl ?? `http://localhost:${options.config.webUi?.port ?? 3101}`;
-    this.registry = new MCPClientRegistry(this.logger, this.oauthStore, publicUrl);
+    const publicUrl =
+      options.config.webUi.publicUrl ??
+      `http://localhost:${String(options.config.webUi.port)}`;
+    this.registry = new MCPClientRegistry(
+      this.logger,
+      this.oauthStore,
+      publicUrl,
+    );
     this.router = new Router(this.logger);
     this.converter = new ToonConverter(this.config.toon);
     this.metrics = new Metrics();
     this.logs = new LogStore();
-    this.store = new Store(resolvePath(this.dataDir, 'morph.db'));
-    this.health = new HealthChecker(this.registry, this.config.health, this.logger);
+    this.store = new Store(resolvePath(this.dataDir, "morph.db"));
+    this.health = new HealthChecker(
+      this.registry,
+      this.config.health,
+      this.logger,
+    );
 
-    this.registry.on('toolListChanged', () => this.rebuildRouter());
-    this.registry.on('connected', (name) => this.emit('mcp:connected', name));
-    this.registry.on('disconnected', (name) => this.emit('mcp:disconnected', name));
-    this.registry.on('error', (name, err) => this.emit('mcp:error', name, err));
+    this.registry.on("toolListChanged", () => {
+      this.rebuildRouter();
+    });
+    this.registry.on("connected", (name) => this.emit("mcp:connected", name));
+    this.registry.on("disconnected", (name) =>
+      this.emit("mcp:disconnected", name),
+    );
+    this.registry.on("error", (name, err) => this.emit("mcp:error", name, err));
   }
 
   getConfig(): MorphConfig {
@@ -82,31 +99,35 @@ export class Hub extends EventEmitter {
     await this.registry.initialize(this.config.mcpServers);
     this.rebuildRouter();
     this.health.start();
-    if (this.config.morph.logLevel) {
-      this.watcher.on('change', (cfg) => void this.applyConfig(cfg));
-      this.watcher.on('error', (err) =>
-        this.logger.error({ err: err.message }, 'config reload failed; keeping current config'),
+    this.watcher.on("change", (cfg) => void this.applyConfig(cfg));
+    this.watcher.on("error", (err) => {
+      this.logger.error(
+        { err: err.message },
+        "config reload failed; keeping current config",
       );
-      this.watcher.watch(this.configPath);
-    }
-    this.logger.info('hub started');
+    });
+    this.watcher.watch(this.configPath, this.mcpPath);
+    this.logger.info("hub started");
   }
 
   private rebuildRouter(): void {
     const toolsByMcp = new Map<string, Tool[]>();
     const aliasesByMcp = new Map<string, Record<string, string> | undefined>();
     for (const def of this.registry.getDefinitions()) {
-      if (this.registry.getClient(def.name)?.getStatus() === 'connected') {
+      if (this.registry.getClient(def.name)?.getStatus() === "connected") {
         toolsByMcp.set(def.name, this.registry.getTools(def.name));
         aliasesByMcp.set(def.name, def.aliases);
       }
     }
-    this.router.buildRoutes({
-      toolsByMcp,
-      aliasesByMcp,
-      allowConflicts: this.config.morph.allowConflicts,
-    }, this.config.morph.toolPrefix ?? '');
-    this.emit('tools:changed');
+    this.router.buildRoutes(
+      {
+        toolsByMcp,
+        aliasesByMcp,
+        allowConflicts: this.config.morph.allowConflicts,
+      },
+      this.config.morph.toolPrefix,
+    );
+    this.emit("tools:changed");
   }
 
   /** Full tool list exposed to the agent (backend + built-ins). */
@@ -125,32 +146,37 @@ export class Hub extends EventEmitter {
     }
   }
 
-  private async executeCall(name: string, args: unknown): Promise<CallToolResult> {
+  private async executeCall(
+    name: string,
+    args: unknown,
+  ): Promise<CallToolResult> {
     if (isBuiltinTool(name)) {
       const result = this.callBuiltin(name);
       const builtinConversion = this.converter.convertResult(result);
       const builtinId = this.store.appendLog({
-        mcpName: 'system',
+        mcpName: "system",
         toolName: name,
-        level: 'info',
-        message: 'built-in tool called',
+        level: "info",
+        message: "built-in tool called",
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
-        outputText: builtinConversion.result?.content?.[0]?.type === 'text'
-          ? builtinConversion.result.content[0].text
-          : JSON.stringify(builtinConversion.result),
+        outputText:
+          builtinConversion.result.content[0]?.type === "text"
+            ? builtinConversion.result.content[0].text
+            : JSON.stringify(builtinConversion.result),
         durationMs: 0,
         tokensSaved: 0,
       });
       this.logs.append({
         id: builtinId,
-        mcpName: 'system',
+        mcpName: "system",
         toolName: name,
-        level: 'info',
-        message: 'built-in tool called',
+        level: "info",
+        message: "built-in tool called",
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
-        outputText: builtinConversion.result?.content?.[0]?.type === 'text'
-          ? builtinConversion.result.content[0].text
-          : JSON.stringify(builtinConversion.result),
+        outputText:
+          builtinConversion.result.content[0]?.type === "text"
+            ? builtinConversion.result.content[0].text
+            : JSON.stringify(builtinConversion.result),
         durationMs: 0,
         tokensSaved: 0,
       });
@@ -166,9 +192,9 @@ export class Hub extends EventEmitter {
     } catch (err) {
       const errMsg = `Tool not found: ${(err as Error).message}`;
       const errId = this.store.appendLog({
-        mcpName: 'system',
+        mcpName: "system",
         toolName: name,
-        level: 'error',
+        level: "error",
         message: errMsg,
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
         durationMs: 0,
@@ -176,9 +202,9 @@ export class Hub extends EventEmitter {
       });
       this.logs.append({
         id: errId,
-        mcpName: 'system',
+        mcpName: "system",
         toolName: name,
-        level: 'error',
+        level: "error",
         message: errMsg,
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
         durationMs: 0,
@@ -191,9 +217,9 @@ export class Hub extends EventEmitter {
     if (!client) {
       const errMsg = `MCP "${mcpName}" is not available`;
       const errId = this.store.appendLog({
-        mcpName: 'system',
+        mcpName: "system",
         toolName: name,
-        level: 'error',
+        level: "error",
         message: errMsg,
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
         durationMs: 0,
@@ -201,9 +227,9 @@ export class Hub extends EventEmitter {
       });
       this.logs.append({
         id: errId,
-        mcpName: 'system',
+        mcpName: "system",
         toolName: name,
-        level: 'error',
+        level: "error",
         message: errMsg,
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
         durationMs: 0,
@@ -222,32 +248,38 @@ export class Hub extends EventEmitter {
     let toonTokens: number | undefined;
     try {
       const raw = await client.callTool(originalName, args);
-      rawOutput = raw.content?.[0]?.type === 'text' ? raw.content[0].text : JSON.stringify(raw);
+      rawOutput =
+        raw.content[0]?.type === "text"
+          ? raw.content[0].text
+          : JSON.stringify(raw);
       const conversion = this.converter.convertResult(raw);
       if (conversion.savings) {
-        tokensSaved = conversion.savings.originalTokens - conversion.savings.toonTokens;
+        tokensSaved =
+          conversion.savings.originalTokens - conversion.savings.toonTokens;
         savingsPercent = conversion.savings.percent;
         originalTokens = conversion.savings.originalTokens;
         toonTokens = conversion.savings.toonTokens;
       }
-      if (conversion.result?.content) {
-        conversionOutput = conversion.result.content[0]?.type === 'text'
+      conversionOutput =
+        conversion.result.content[0]?.type === "text"
           ? conversion.result.content[0].text
           : JSON.stringify(conversion.result);
-      }
       return conversion.result;
     } catch (err) {
       success = false;
       throw err;
     } finally {
       const durationMs = Math.round(performance.now() - started);
-      this.metrics.record({ mcpName, toolName: name, durationMs, tokensSaved, success }, savingsPercent);
+      this.metrics.record(
+        { mcpName, toolName: name, durationMs, tokensSaved, success },
+        savingsPercent,
+      );
       this.store.recordCall(mcpName, name, durationMs, tokensSaved);
       const logId = this.store.appendLog({
         mcpName,
         toolName: name,
-        level: success ? 'info' : 'error',
-        message: success ? 'tool call succeeded' : 'tool call failed',
+        level: success ? "info" : "error",
+        message: success ? "tool call succeeded" : "tool call failed",
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
         outputText: conversionOutput,
         rawOutput,
@@ -260,8 +292,8 @@ export class Hub extends EventEmitter {
         id: logId,
         mcpName,
         toolName: name,
-        level: success ? 'info' : 'error',
-        message: success ? 'tool call succeeded' : 'tool call failed',
+        level: success ? "info" : "error",
+        message: success ? "tool call succeeded" : "tool call failed",
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
         outputText: conversionOutput,
         rawOutput,
@@ -270,13 +302,13 @@ export class Hub extends EventEmitter {
         durationMs,
         tokensSaved,
       });
-      this.emit('tool:called', name, mcpName, durationMs);
+      this.emit("tool:called", name, mcpName, durationMs);
     }
   }
 
   private callBuiltin(name: string): CallToolResult {
     const json = (data: unknown): CallToolResult => ({
-      content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
+      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     });
     let result: CallToolResult;
     switch (name) {
@@ -288,7 +320,7 @@ export class Hub extends EventEmitter {
         break;
       case BUILTIN_TOOL_NAMES.reloadConfig:
         void this.reloadFromDisk();
-        result = json({ ok: true, message: 'config reload triggered' });
+        result = json({ ok: true, message: "config reload triggered" });
         break;
       default:
         throw new Error(`unknown built-in tool: ${name}`);
@@ -300,7 +332,7 @@ export class Hub extends EventEmitter {
   getStatus(): {
     version: string;
     uptimeMs: number;
-    mcps: ReturnType<MCPClientRegistry['getStatusSummary']>;
+    mcps: ReturnType<MCPClientRegistry["getStatusSummary"]>;
     toolCount: number;
   } {
     return {
@@ -312,16 +344,20 @@ export class Hub extends EventEmitter {
   }
 
   async reloadFromDisk(): Promise<void> {
-    const { loadConfig } = await import('./config/loader.js');
-    const cfg = await loadConfig(this.configPath);
+    const { loadConfig } = await import("./config/loader.js");
+    const cfg = await loadConfig(this.configPath, this.mcpPath);
     await this.applyConfig(cfg);
   }
 
-  /** Persist current config to disk (preserves $schema if present). */
+  /** Persist current config to disk: morph.json + .mcp.json (preserves $schema). */
   async saveConfig(): Promise<void> {
-    const { saveConfig: persist } = await import('./config/loader.js');
-    const schemaRef = (this.config as Record<string, unknown>).$schema as string | undefined;
-    await persist(this.configPath, this.config, schemaRef);
+    const { saveConfig: persist } = await import("./config/loader.js");
+    const morphSchemaRef = (this.config as Record<string, unknown>).$schema as
+      | string
+      | undefined;
+    await persist(this.configPath, this.mcpPath, this.config, {
+      morphSchemaRef,
+    });
   }
 
   /** Diff old vs new config and apply changes without a full restart. */
@@ -335,25 +371,30 @@ export class Hub extends EventEmitter {
     const nextByName = new Map(next.mcpServers.map((d) => [d.name, d]));
 
     for (const name of prevByName.keys()) {
-      if (!nextByName.has(name)) await this.safe(() => this.registry.remove(name));
+      if (!nextByName.has(name))
+        await this.safe(() => this.registry.remove(name));
     }
     for (const [name, def] of nextByName) {
-      if (!prevByName.has(name)) {
+      const prevDef = prevByName.get(name);
+      if (!prevDef) {
         await this.safe(() => this.registry.add(def));
-      } else if (changed(prevByName.get(name)!, def)) {
+      } else if (changed(prevDef, def)) {
         await this.safe(() => this.registry.update(name, def));
       }
     }
     this.rebuildRouter();
-    this.emit('config:reloaded');
-    this.logger.info('config hot-reloaded');
+    this.emit("config:reloaded");
+    this.logger.info("config hot-reloaded");
   }
 
   private async safe(fn: () => Promise<void>): Promise<void> {
     try {
       await fn();
     } catch (err) {
-      this.logger.error({ err: (err as Error).message }, 'error applying config change');
+      this.logger.error(
+        { err: (err as Error).message },
+        "error applying config change",
+      );
     }
   }
 
