@@ -100,7 +100,7 @@ export function Dashboard() {
         <h2 className="text-lg font-semibold mb-3">MCP Servers</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {mcps.map((m) => (
-            <MCPCard key={m.name} mcp={m} />
+            <MCPCard key={m.name} mcp={m} onRestart={() => {}} />
           ))}
           {mcps.length === 0 && (
             <p className="text-sm text-morph-muted col-span-full">No MCP servers configured.</p>

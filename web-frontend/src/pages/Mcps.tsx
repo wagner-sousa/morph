@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Loader2, Plus } from 'lucide-react';
 import { api, type MCPConfig, type MCPTransport } from '../lib/api';
-import { useAddMcp, useDeleteMcp, useMcps } from '../hooks/useMcps';
+import { useAddMcp, useDeleteMcp, useMcps, useRestartMcp } from '../hooks/useMcps';
 import { MCPCard } from '../components/MCPCard';
 import { Button } from '../components/ui/button';
 import {
@@ -191,6 +191,7 @@ export function Mcps() {
   const { data: mcps, isLoading } = useMcps();
   const addMcp = useAddMcp();
   const deleteMcp = useDeleteMcp();
+  const restartMcp = useRestartMcp();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [oauthAdding, setOauthAdding] = useState<string | null>(null);
 
@@ -308,17 +309,7 @@ export function Mcps() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {mcps?.map((m) => (
-          <div key={m.name} className="relative group">
-            <MCPCard mcp={m} />
-            <Button
-              variant="destructive"
-              size="sm"
-              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={() => handleDelete(m.name)}
-            >
-              Delete
-            </Button>
-          </div>
+          <MCPCard key={m.name} mcp={m} onDelete={handleDelete} onRestart={(name) => restartMcp.mutateAsync(name)} onTools={() => {}} />
         ))}
         {mcps?.length === 0 && (
           <p className="text-sm text-morph-muted col-span-full">

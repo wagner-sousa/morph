@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
+import { TooltipProvider } from './components/ui/tooltip';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Mcps } from './pages/Mcps';
@@ -23,13 +24,15 @@ const queryClient = new QueryClient({
 
 function Layout() {
   return (
-    <div className="min-h-screen bg-morph-bg text-morph-text">
-      <Sidebar />
-      <main className="ml-56 p-6">
-        <Outlet />
-      </main>
-      <Toaster position="bottom-right" richColors closeButton />
-    </div>
+    <TooltipProvider>
+      <div className="min-h-screen bg-morph-bg text-morph-text">
+        <Sidebar />
+        <main className="ml-56 p-6">
+          <Outlet />
+        </main>
+        <Toaster position="bottom-right" richColors closeButton />
+      </div>
+    </TooltipProvider>
   );
 }
 
