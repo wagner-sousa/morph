@@ -23,9 +23,10 @@ describe('ToonConverter', () => {
     expect(converter.decode(item.text)).toEqual(rows);
   });
 
-  it('skips content below the size threshold', () => {
-    const { converted } = converter.convertResult(textResult('{"a":1}'));
-    expect(converted).toBe(false);
+  it('converts valid JSON even for small payloads', () => {
+    const { converted, savings } = converter.convertResult(textResult('{"a":1}'));
+    expect(converted).toBe(true);
+    expect(savings!.percent).toBeGreaterThan(0);
   });
 
   it('passes through non-JSON text untouched', () => {

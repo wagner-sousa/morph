@@ -9,7 +9,6 @@
 import { decode, encode, DELIMITERS } from '@toon-format/toon';
 import type { CallToolResult } from '../mcp-client/types.js';
 import type { ToonOptions } from '../config/types.js';
-import { decideConvert } from './optimizer.js';
 import { estimateSavings, type TokenSavings } from './stats.js';
 
 export interface ConversionResult {
@@ -62,9 +61,6 @@ export class ToonConverter {
       if (item.type !== 'text' || typeof item.text !== 'string') return item;
       const parsed = this.isJson(item.text);
       if (parsed === undefined) return item;
-
-      const decision = decideConvert(item.text, parsed, this.options);
-      if (!decision.convert) return item;
 
       let toon: string;
       try {
