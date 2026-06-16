@@ -1,9 +1,10 @@
 import { Link } from '@tanstack/react-router';
-import { RefreshCw, Shield } from 'lucide-react';
+import { List, RefreshCw, Shield, Trash2 } from 'lucide-react';
 import { type MCPStatus, api } from '../lib/api';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 const statusVariant = (s: string) => {
   switch (s) {
@@ -14,7 +15,14 @@ const statusVariant = (s: string) => {
   }
 };
 
-export function MCPCard({ mcp }: { mcp: MCPStatus }) {
+interface MCPCardProps {
+  mcp: MCPStatus;
+  onDelete?: (name: string) => void;
+  onRestart?: (name: string) => void;
+  onTools?: (name: string) => void;
+}
+
+export function MCPCard({ mcp, onDelete, onRestart, onTools }: MCPCardProps) {
   const needsOAuth = mcp.oauthNeeded && !mcp.oauthHasToken;
 
   const handleOAuth = async () => {
@@ -32,27 +40,53 @@ export function MCPCard({ mcp }: { mcp: MCPStatus }) {
         </Link>
         <Badge variant={statusVariant(mcp.status)}>{mcp.status}</Badge>
       </CardHeader>
-      <CardContent>
-        <div className="text-xs text-morph-muted space-y-1">
+      <CardContent className="flex flex-col h-full">
+        <div className="flex-1 text-xs text-morph-muted space-y-1">
           <div>Transport: {mcp.transport}</div>
           <div>Tools: {mcp.toolCount}</div>
           <div>Latency: {mcp.latencyMs != null ? `${mcp.latencyMs}ms` : '—'}</div>
           {mcp.lastError && <div className="text-red-400">Error: {mcp.lastError}</div>}
         </div>
-        <div className="flex gap-2 mt-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => void api.restartMcp(mcp.name)}
-          >
-            <RefreshCw className="h-3 w-3" />
-            Restart
-          </Button>
+        <div className="flex items-center gap-1 pt-3 border-t border-morph-border mt-3">
+          {onRestart && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onRestart(mcp.name)}>
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Restart</TooltipContent>
+            </Tooltip>
+          )}
+          {onTools && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onTools(mcp.name)}>
+                  <List className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>View Tools</TooltipContent>
+            </Tooltip>
+          )}
           {needsOAuth && (
-            <Button variant="outline" size="sm" onClick={handleOAuth}>
-              <Shield className="h-3 w-3" />
-              Authorize
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleOAuth}>
+                  <Shield className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Authorize</TooltipContent>
+            </Tooltip>
+          )}
+          {onDelete && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto text-red-400 hover:text-red-300" onClick={() => onDelete(mcp.name)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete</TooltipContent>
+            </Tooltip>
           )}
         </div>
       </CardContent>
