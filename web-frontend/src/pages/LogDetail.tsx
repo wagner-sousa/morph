@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from '@tanstack/react-router';
 import { api } from '../lib/api';
-import { Badge } from './ui/badge';
-import { Button } from './ui/button';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
 
 function levelVariant(lvl: string) {
   switch (lvl) {
