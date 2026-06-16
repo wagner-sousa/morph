@@ -4,6 +4,54 @@
 (generated from the zod schema via `npm run gen:schema`). All string values
 support `${ENV_VAR}` interpolation, resolved from the environment / `.env`.
 
+## Schema overview
+
+```mermaid
+mindmap
+  root((morph.json))
+    morph
+      version
+      logLevel
+      allowConflicts
+    mcpServers[]
+      name
+      enabled
+      description
+      labels
+      aliases
+      transport
+        STDIO
+          command
+          args
+          env
+          cwd
+          timeoutMs
+        HTTP
+          url
+          headers
+          apiKey
+        SSE
+          url
+          headers
+          reconnectIntervalMs
+    toon
+      autoConvert
+      delimiter
+      indent
+      flattenDepth
+      threshold
+    webUi
+      enabled
+      host
+      port
+      publicUrl
+      auth
+    health
+      intervalMs
+      timeoutMs
+      maxRetries
+```
+
 ## Top-level
 
 | Field | Type | Default | Notes |
@@ -27,11 +75,14 @@ support `${ENV_VAR}` interpolation, resolved from the environment / `.env`.
 | `aliases` | `Record<string,string>` | — | `originalName → exposedName` overrides |
 | `transport` | object | ✅ | One of the three types below |
 
-> **Important:** The `name` field is the MCP's logical name used for routing.
-> When two MCPs share tool names, they get auto-prefixed as `${name}_${tool}`.
-> Set `aliases` to override specific tool names explicitly.
-
 ### Transport: STDIO (local process)
+
+```mermaid
+flowchart LR
+    M[MORPH] -->|spawn node CLI| P[Child Process]
+    P -->|stdin JSON-RPC| M
+    M -->|stdout JSON-RPC| P
+```
 
 ```json
 {
@@ -61,6 +112,16 @@ support `${ENV_VAR}` interpolation, resolved from the environment / `.env`.
 | `timeoutMs` | number | — | Process timeout in milliseconds |
 
 ### Transport: HTTP (Streamable HTTP)
+
+```mermaid
+flowchart LR
+    M[MORPH] -->|POST JSON-RPC| S[MCP Server]
+    S -->|JSON-RPC response| M
+    alt OAuth
+        S -->|401 challenge| M
+        M -->|OAuth flow| S
+    end
+```
 
 ```json
 {
@@ -93,6 +154,17 @@ support `${ENV_VAR}` interpolation, resolved from the environment / `.env`.
 > endpoint and support Dynamic Client Registration.
 
 ### Transport: SSE (Server-Sent Events)
+
+```mermaid
+sequenceDiagram
+    participant M as MORPH
+    participant S as MCP Server
+    M->>S: GET /sse
+    S-->>M: SSE stream (event:endpoint, data:/mcp?sessionId=X)
+    M->>S: POST /mcp?sessionId=X (JSON-RPC)
+    S-->>M: 202 Accepted
+    S-->>M: SSE event (JSON-RPC response)
+```
 
 ```json
 {

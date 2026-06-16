@@ -6,6 +6,42 @@ converts JSON results to TOON, and returns them.
 
 ## Layers
 
+```mermaid
+graph TB
+    subgraph Agent Layer
+        Agent[AI Agent]
+    end
+    subgraph MORPH Core
+        direction TB
+        MCP[MCP Server] --> Hub[Hub]
+        Hub --> Router[Router]
+        Hub --> Converter[TOON Converter]
+        Hub --> Registry[MCP Client Registry]
+        Hub --> Metrics[Metrics]
+        Hub --> LS[LogStore]
+    end
+    subgraph Persistence
+        SQL[(SQLite)]
+        FS[oauth-sessions.json]
+    end
+    subgraph Backend MCPs
+        S1[MCP STDIO]
+        S2[MCP HTTP]
+        S3[MCP SSE]
+    end
+    subgraph Web UI
+        API[Fastify API]
+        WS[WebSocket]
+        Studio[Morph Studio]
+    end
+    Agent --> MCP
+    Hub --> API & WS
+    API --> Studio
+    LS --> SQL
+    Registry --> S1 & S2 & S3
+    Registry --> FS
+```
+
 | Layer | Code | Responsibility |
 |-------|------|----------------|
 | Agent-facing MCP server | `src/mcp-server/server.ts` | Exposes `tools/list` + `tools/call` to the agent |
@@ -26,6 +62,31 @@ converts JSON results to TOON, and returns them.
 
 ## Startup flow
 
+```mermaid
+sequenceDiagram
+    participant CLI as CLI
+    participant Hub as Hub
+    participant Registry as Registry
+    participant Router as Router
+    participant MCP as MCP Server
+    participant Health as Health Checker
+    participant Web as Web API
+
+    CLI->>Hub: new Hub(config)
+    Hub->>Hub: create Converter, Router, Registry, OAuthStore, Metrics, Stores
+    Hub->>Registry: initialize(mcpServers)
+    Registry->>Registry: connect each enabled MCP
+    Registry-->>Hub: tools discovered
+    Hub->>Router: buildRoutes(tools)
+    Router-->>Hub: routes built
+    Hub->>MCP: listenStdio() / listenHttp()
+    MCP-->>CLI: ready
+    Hub->>Health: start()
+    Health-->>Hub: periodic pings
+    Hub->>Web: start(host, port)
+    Web-->>CLI: listening
+```
+
 1. Load & validate `morph.json`, resolve `${ENV_VAR}`.
 2. `Hub` constructor: create converter, router, registry, OAuth store, metrics, stores.
 3. `Registry.initialize()` — connect every enabled MCP, discover tools.
@@ -38,22 +99,68 @@ converts JSON results to TOON, and returns them.
 
 ## Tool-call flow
 
-```
-agent tools/call(name, args)
-  → Hub.callTool
-     → Built-in? → callBuiltin() → ToonConverter.convertResult() → return
-     → Router.resolve(name) → { mcpName, originalName }
-     → client.callTool(originalName, args)                   (backend JSON result)
-     → rawOutput = content[0].text                            (original JSON saved)
-     → ToonConverter.convertResult()                          (JSON → TOON if beneficial)
-     → savings: originalTokens, toonTokens, percent           (calculated)
-     → record metrics + store in SQLite (returns row id)     (ID used for both stores)
-     → append to in-memory LogStore with SQLite ID            (IDs stay in sync)
-  ← CallToolResult (TOON, with savings in _meta)
+```mermaid
+sequenceDiagram
+    participant Agent as AI Agent
+    participant MCP as MCP Server
+    participant Hub as Hub
+    participant Router as Router
+    participant Client as MCP Client
+    participant Converter as TOON Converter
+    participant SQL as SQLite
+    participant Log as LogStore
 
-On router failure (tool not found):
-  → Log error to both stores with mcpName='system'
-  → Throw error (caught by MCP server handler)
+    Agent->>MCP: tools/call(name, args)
+    MCP->>Hub: callTool(name, args)
+    Hub->>Hub: isBuiltinTool(name)?
+    alt Built-in tool
+        Hub->>Hub: callBuiltin(name)
+        Hub->>Converter: convertResult(json)
+        Converter-->>Hub: TOON result
+    else Backend MCP
+        Hub->>Router: resolve(name)
+        Router-->>Hub: { mcpName, originalName }
+        Hub->>Client: callTool(originalName, args)
+        Client-->>Hub: JSON result
+        Hub->>Hub: save rawOutput
+        Hub->>Converter: convertResult(json)
+        Converter-->>Hub: TOON result + savings
+        Hub->>SQL: appendLog(entry)
+        SQL-->>Hub: rowId
+        Hub->>Log: append({ id: rowId, ... })
+    end
+    Hub-->>MCP: CallToolResult (TOON)
+    MCP-->>Agent: result
+```
+
+## OAuth flow (HTTP MCPs with 401 challenge)
+
+```mermaid
+sequenceDiagram
+    participant Registry as Registry
+    participant Client as HTTP Client
+    participant Server as MCP Server
+    participant OAuthP as OAuth Provider
+    participant OAuthS as OAuth Store
+    participant User as User Browser
+
+    Registry->>Client: connect()
+    Client->>Server: initialize request
+    Server-->>Client: 401 Unauthorized
+    Client->>OAuthP: redirectToAuthorization(url)
+    OAuthP->>OAuthS: save authorizationUrl
+    OAuthP-->>Client: pendingUrl stored
+    Client->>OAuthP: waitForRedirect()
+    OAuthP-->>Client: authorization URL
+    Client-->>User: open browser
+    User->>Server: GET /authorize?client_id=...
+    Server-->>User: redirect to callback
+    User->>OAuthP: GET /callback?code=...
+    OAuthP->>OAuthS: save tokens
+    OAuthP-->>Client: authorization completed
+    Client->>Server: initialize with Bearer token
+    Server-->>Client: 200 OK (connected)
+    Client-->>Registry: connected
 ```
 
 ## Log ID synchronization
@@ -64,20 +171,15 @@ the live `/api/logs` stream) and SQLite (`Store` for persistence and
 to SQLite first and using the returned `lastInsertRowid` for the LogStore entry.
 This ensures clicking a log in the list always shows the correct detail.
 
-## OAuth flow (HTTP MCPs with 401 challenge)
-
-```
-MORPH registry → creates MorphOAuthProvider per HTTP MCP
-  → client.connect() → SDK sends initialize → server returns 401
-  → SDK transport calls authProvider.redirectToAuthorization(url)
-     → saves authorization URL to OAuthStore
-     → sets pendingUrl (fixes SDK waitForRedirect race condition)
-  → SDK transport calls authProvider.waitForRedirect()
-     → resolves immediately if pendingUrl exists
-  → SDK redirects user to authorization URL
-  → User authorizes → redirected to MORPH callback endpoint
-  → MORPH exchanges code for token → saves to OAuthStore
-  → SDK reconnects with bearer token → connection established
+```mermaid
+flowchart LR
+    A[Tool call] --> B[Store.appendLog]
+    B --> C[(SQLite)]
+    C -->|returns rowId| D[LogStore.append]
+    D --> E[In-memory buffer]
+    E --> F[/api/logs]
+    C --> G[/api/logs/:id]
+    F & G --> H[Same ID always]
 ```
 
 ## Built-in tools
@@ -95,6 +197,16 @@ All built-in results pass through the TOON converter for consistent output forma
 ## Conflict resolution
 
 When two MCPs expose the same tool name, the Router:
+
+```mermaid
+flowchart LR
+    A[Tool name conflict] --> B{Aliases defined?}
+    B -->|Yes| C[Use alias as exposed name]
+    B -->|No| D{allowConflicts?}
+    D -->|Yes| E[Last MCP wins]
+    D -->|No| F[Auto-prefix: MCP_tool]
+```
+
 1. honours an explicit `aliases` entry from config;
 2. otherwise auto-prefixes both as `${mcp}_${tool}`;
 3. if `morph.allowConflicts` is set, the last MCP wins (logged warning).

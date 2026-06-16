@@ -4,6 +4,16 @@
 
 TOON (Token-Oriented Object Notation) is a compact data format that cuts token usage by 30–60% compared to JSON. MORPH is a **gateway proxy** that sits between your AI agents and your MCP servers, automatically converting JSON responses to TOON — no MCP changes required.
 
+```mermaid
+graph LR
+    Agent[AI Agent] -- MCP stdio/HTTP --> MORPH
+    MORPH -- stdio --> M1[MCP Server A]
+    MORPH -- HTTP --> M2[MCP Server B]
+    MORPH -- SSE --> M3[MCP Server C]
+    MORPH -.-> UI[Web UI :3101]
+    UI -.-> DB[(SQLite)]
+```
+
 ## Features
 
 - **Single entry point** — One MCP config for all your servers
@@ -39,6 +49,22 @@ Open `http://localhost:5173` for the Web UI.
 ## Demo MCP Servers
 
 MORPH ships with 5 demo MCP servers for testing:
+
+```mermaid
+graph LR
+    subgraph "MORPH Dev Stack"
+        BE[Backend API :3101]
+        FE[Frontend :5173]
+    end
+    subgraph "Demo MCP Servers"
+        STDIO[demo-stdio]
+        HTTP[demo-http :3200]
+        OAUTH[demo-http-oauth :3202]
+        SSE[demo-sse :3201]
+        PARAMS[demo-stdio-params]
+    end
+    BE --> STDIO & HTTP & OAUTH & SSE & PARAMS
+```
 
 | Name | Transport | Port | Tools |
 |------|-----------|------|-------|
@@ -115,13 +141,22 @@ Real-time updates via WebSocket at `ws://<host>/ws`.
 
 ## Architecture
 
-```
-Agent ──MCP──▶ MORPH ──stdio/HTTP/SSE──▶ MCP Server A
-                                           MCP Server B
-              │                            MCP Server C
-              └── Web UI (port 3101)
-                   │
-              SQLite (logs + stats)
+```mermaid
+flowchart TB
+    Agent[AI Agent] -->|tools/list tools/call| Server[Agent-facing MCP Server]
+    Server --> Hub[Hub Coordinator]
+    Hub --> Router[Router]
+    Hub --> Converter[TOON Converter]
+    Hub --> Registry[MCP Client Registry]
+    Registry --> Stdio[STDIO Client]
+    Registry --> Http[HTTP Client]
+    Registry --> Sse[SSE Client]
+    Registry --> OAuth[OAuth Provider]
+    Hub --> Web[Web API :3101]
+    Web --> FE[Morph Studio :5173]
+    Hub --> Metrics[Metrics]
+    Hub --> Logs[LogStore]
+    Hub --> SQL[(SQLite)]
 ```
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.

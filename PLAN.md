@@ -26,34 +26,39 @@ All core features are implemented and tested:
 
 ### Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────┐
-│                   AI Agent                           │
-│           (Claude, Copilot, Cursor)                  │
-└──────────────────────┬──────────────────────────────┘
-                       │ MCP (stdio or HTTP)
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│                   MORPH Hub                          │
-│                                                      │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────┐   │
-│  │ Router   │  │ TOON     │  │ Metrics + Stores  │   │
-│  │          │  │ Converter│  │ (SQLite + Memory) │   │
-│  └──────────┘  └──────────┘  └──────────────────┘   │
-│                                                      │
-│  ┌──────────────────────────────────────────────┐    │
-│  │          MCP Client Registry                  │    │
-│  │  ┌──────┐ ┌──────┐ ┌──────┐ ┌─────────────┐ │    │
-│  │  │STDIO │ │ HTTP │ │ SSE  │ │OAuth Provider│ │    │
-│  │  │Client│ │Client│ │Client│ │              │ │    │
-│  │  └──────┘ └──────┘ └──────┘ └─────────────┘ │    │
-│  └──────────────────────────────────────────────┘    │
-│                                                      │
-│  ┌──────────────────────────────────────────────┐    │
-│  │           Web UI (Fastify + Vite)             │    │
-│  │  REST API │ WebSocket │ Static Studio         │    │
-│  └──────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph "AI Agent"
+        A[Claude / Copilot / Cursor]
+    end
+    subgraph "MORPH Gateway"
+        direction TB
+        MS[MCP Server] --> H[Hub]
+        H --> R[Router]
+        H --> TC[TOON Converter]
+        H --> REG[Registry]
+        REG --> SC[STDIO Client]
+        REG --> HC[HTTP Client]
+        REG --> SSEC[SSE Client]
+        REG --> OA[OAuth Provider]
+        H --> WEB[Web API]
+        H --> M[Metrics]
+        H --> LS[LogStore]
+        H --> SQL[(SQLite)]
+    end
+    subgraph "Backend MCPs"
+        S1[MCP A]
+        S2[MCP B]
+        S3[MCP C]
+    end
+    subgraph "Web UI"
+        FE[Morph Studio]
+    end
+    A -->|MCP stdio/HTTP| MS
+    SC -->|stdio| S1
+    HC -->|HTTP| S2
+    SSEC -->|SSE| S3
+    WEB --> FE
 ```
 
 ### Key Design Decisions
@@ -66,6 +71,32 @@ All core features are implemented and tested:
 
 4. **Demo MCP servers** — Five self-contained servers for testing all transport types and features. The OAuth demo includes full metadata, client registration, authorize/token endpoints, and accepts `demo-token` via `apiKey`.
 
+### Data Flow
+
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant Hub
+    participant Router
+    participant Client as MCP Client
+    participant Converter as TOON Converter
+    participant SQL as SQLite
+    participant Log as LogStore
+
+    Agent->>Hub: callTool(name, args)
+    Hub->>Router: resolve(name)
+    Router-->>Hub: { mcpName, originalName }
+    Hub->>Client: callTool(originalName, args)
+    Client-->>Hub: JSON result
+    Hub->>Hub: save rawOutput
+    Hub->>Converter: convertResult(raw)
+    Converter-->>Hub: TOON result + savings
+    Hub->>SQL: appendLog(entry)
+    SQL-->>Hub: rowId
+    Hub->>Log: append({ id: rowId, ... })
+    Hub-->>Agent: CallToolResult (TOON)
+```
+
 ### Ports
 
 | Service | Port | Purpose |
@@ -77,6 +108,19 @@ All core features are implemented and tested:
 | Demo OAuth MCP | 3202 | Demo MCP via HTTP + OAuth |
 
 ### Test Coverage
+
+```mermaid
+pie title Test Distribution (124 tests)
+    "Store + LogStore" : 23
+    "MCP Handler" : 10
+    "Web Server / Config" : 21
+    "TOON Converter + Optimizer" : 20
+    "OAuth + Env + Router" : 17
+    "MCP Connection" : 6
+    "Hub + Demo Servers" : 14
+    "Integration" : 5
+    "Importer + Health" : 8
+```
 
 ```
 16 test files, 124+ tests:
@@ -103,7 +147,41 @@ All core features are implemented and tested:
 └─────────────────────────────────────────────────────┘
 ```
 
+### CI/CD Pipeline
+
+```mermaid
+flowchart LR
+    PUSH[git push] --> TC[TypeScript Typecheck]
+    TC --> T[Test Suite 124+]
+    T --> B[Build Backend]
+    B --> FE[Build Frontend]
+    FE --> D[Docker Build]
+    D --> PUSHREG[Push to GHCR]
+```
+
 ## Future Roadmap
+
+```mermaid
+gantt
+    title MORPH Roadmap
+    dateFormat  YYYY-MM-DD
+    axisFormat  %Y Q%q
+
+    section Short-term
+    Web UI Auth               :done, 2026-01-01, 2026-03-01
+    Batch Tool Calls          :active, 2026-03-01, 2026-06-01
+    Log Export (JSON/CSV)     :2026-04-01, 2026-06-01
+
+    section Medium-term
+    Multi-user & API Keys     :2026-06-01, 2026-09-01
+    Prometheus Metrics        :2026-06-01, 2026-09-01
+    TOON Preview in UI        :2026-07-01, 2026-10-01
+
+    section Long-term
+    Plugin System             :2026-10-01, 2027-03-01
+    Distributed Mode          :2027-01-01, 2027-06-01
+    AI-powered TOON           :2027-03-01, 2027-06-01
+```
 
 ### Short-term
 - [ ] Web UI Basic Auth configuration page

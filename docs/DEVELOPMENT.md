@@ -3,9 +3,12 @@
 MORPH follows **Specification-Driven Development (SDD)**: write the contract
 (types/schema) first, then a failing test, then the implementation.
 
-```
-types.ts / schema.ts   →   *.test.ts   →   *.ts (impl)
-   (spec)                    (test)          (impl)
+```mermaid
+flowchart LR
+    A[types.ts / schema.ts] -->|spec| B[*.test.ts]
+    B -->|failing test| C[*.ts impl]
+    C -->|passes| D[Done]
+    B -.->|fails| C
 ```
 
 ## Everything runs in Docker
@@ -27,6 +30,23 @@ docker run --rm -v "$PWD":/app -w /app node:22 sh -c "npm install && npm run gen
 ```
 
 ## Dev stack (hot-reload)
+
+```mermaid
+graph TB
+    subgraph "Docker Compose Dev"
+        MORPH[Backend API :3101<br/>tsx watch]
+        STUDIO[Morph Studio :5173<br/>Vite dev server]
+        DEMOS[Demo MCP Servers<br/>:3200 :3201 :3202]
+    end
+    subgraph "Your Machine"
+        BROWSER["Browser → localhost:5173"]
+        AGENT["AI Agent → localhost:3101"]
+    end
+    BROWSER -->|proxies /api, /ws| MORPH
+    AGENT --> MORPH
+    MORPH --> DEMOS
+    STUDIO --> MORPH
+```
 
 ```bash
 # Start all services
@@ -85,7 +105,20 @@ tests/
 └── fixtures/             Test MCP server (echo/fail/delay/large_json)
 ```
 
-## Test files (16 files, 124+ tests)
+## Test coverage
+
+```mermaid
+pie title Test Distribution (124 tests)
+    "Store + LogStore" : 23
+    "MCP Handler" : 10
+    "Web Server / Config" : 21
+    "TOON Converter + Optimizer" : 20
+    "OAuth + Env + Router" : 17
+    "MCP Connection" : 6
+    "Hub + Demo Servers" : 14
+    "Integration" : 5
+    "Importer + Health" : 8
+```
 
 | File | Tests | Scope |
 |------|-------|-------|
@@ -105,6 +138,22 @@ tests/
 | `unit/importer.test.ts` | 4 | Config import from Claude/VS Code/Copilot |
 | `unit/health-checker.test.ts` | 4 | Start/stop, refresh tools |
 | `integration/tool-routing.test.ts` | 5 | Real stdio round-trip + TOON conversion |
+
+## CI Pipeline
+
+```mermaid
+flowchart LR
+    PUSH[git push] --> TC[TypeScript Typecheck]
+    TC --> T[npm test]
+    T --> B[npm run build]
+    B --> FE[Frontend build]
+    FE --> DOCKER[Docker build & push]
+```
+
+Two GitHub Actions workflows handle CI/CD automatically:
+
+- **ci.yml** — runs on push/PR to `main`: typecheck → test → build
+- **docker.yml** — runs on push to `main` + tags `v*`: build & push Docker image to GHCR
 
 ## ESM notes
 
