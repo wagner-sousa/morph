@@ -7,43 +7,55 @@
   },
   "mcpServers": [
     {
-      "name": "demo",
+      "name": "filesystem",
       "enabled": true,
-      "description": "Demo MCP over stdio (ping/users/echo tools)",
+      "description": "Access to local file system",
       "transport": {
         "type": "stdio",
         "command": "npx",
         "args": [
-          "tsx",
-          "src/examples/demo-mcp-server.ts"
+          "-y",
+          "@modelcontextprotocol/server-filesystem",
+          "/data"
         ]
       }
     },
     {
-      "name": "demo-http",
-      "enabled": true,
-      "description": "Demo MCP over Streamable HTTP (port 3200)",
+      "name": "clickup",
+      "enabled": false,
+      "description": "ClickUp task management",
+      "labels": {
+        "team": "engineering",
+        "type": "project-management"
+      },
       "transport": {
-        "type": "http",
-        "url": "http://mcp-test-servers:3200/mcp"
+        "type": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "@anthropic/mcp-clickup",
+          "--api-key=${CLICKUP_API_KEY}"
+        ]
       }
     },
     {
-      "name": "demo-sse",
-      "enabled": true,
-      "description": "Demo MCP over SSE legacy (port 3201)",
+      "name": "brightdata",
+      "enabled": false,
+      "description": "Bright Data web scraping (remote HTTP)",
       "transport": {
-        "type": "sse",
-        "url": "http://mcp-test-servers:3201/sse"
+        "type": "http",
+        "url": "https://api.brightdata.com/mcp",
+        "headers": {
+          "Authorization": "Bearer ${BRIGHTDATA_API_KEY}"
+        }
       }
     },
     {
-      "name": "demo-http",
+      "name": "Stripe",
       "enabled": true,
-      "description": "Demo HTTP MCP server (runs on port 3200)",
       "transport": {
         "type": "http",
-        "url": "http://localhost:3200/mcp"
+        "url": "https://mcp.stripe.com"
       }
     }
   ],
@@ -57,7 +69,7 @@
   "webUi": {
     "enabled": true,
     "host": "0.0.0.0",
-    "port": 3101
+    "port": 3100
   },
   "health": {
     "intervalMs": 30000,
