@@ -13,6 +13,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Mcps } from './pages/Mcps';
 import { MCPDetail } from './pages/MCPDetail';
 import { Logs } from './pages/Logs';
+import { LogDetail } from './pages/LogDetail';
 import { Stats } from './pages/Stats';
 import { Settings } from './pages/Settings';
 
@@ -68,6 +69,12 @@ const logsRoute = createRoute({
   component: Logs,
 });
 
+const logDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/logs/$id',
+  component: LogDetail,
+});
+
 const statsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/stats',
@@ -85,6 +92,7 @@ const routeTree = rootRoute.addChildren([
   mcpsRoute,
   mcpDetailRoute,
   logsRoute,
+  logDetailRoute,
   statsRoute,
   settingsRoute,
 ]);

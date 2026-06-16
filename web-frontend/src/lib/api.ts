@@ -96,6 +96,7 @@ export const api = {
   tools: (name: string) => fetch<unknown[]>(`/mcps/${encodeURIComponent(name)}/tools`),
   stats: () => fetch<Stats>('/stats'),
   logs: (limit = 50) => fetch<LogEntry[]>(`/logs?limit=${limit}`),
+  log: (id: number) => fetch<LogEntry>(`/logs/${id}`),
   version: () => fetch<VersionInfo>('/version'),
   config: () => fetch<{ mcps: MCPConfig[] }>('/config'),
   mcpConfig: async (name: string) => {
