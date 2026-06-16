@@ -72,6 +72,7 @@ export class HttpMCPClient extends BaseMCPClient {
   }
 
   hasOAuthToken(): boolean {
+    if (!this.authProvider) return false;
     return !!(this.authProvider as OAuthProviderExtended).hasTokens?.();
   }
 }
