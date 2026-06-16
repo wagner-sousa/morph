@@ -91,6 +91,7 @@ export const api = {
   deleteMcp: (name: string) => fetch<void>(`/mcps/${encodeURIComponent(name)}`, { method: 'DELETE' }),
   restartMcp: (name: string) =>
     fetch<void>(`/mcps/${encodeURIComponent(name)}/restart`, { method: 'POST' }),
+  tools: (name: string) => fetch<unknown[]>(`/mcps/${encodeURIComponent(name)}/tools`),
   stats: () => fetch<Stats>('/stats'),
   logs: (limit = 50) => fetch<LogEntry[]>(`/logs?limit=${limit}`),
   version: () => fetch<VersionInfo>('/version'),
