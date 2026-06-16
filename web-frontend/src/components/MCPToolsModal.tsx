@@ -80,9 +80,9 @@ export function MCPToolsModal({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const { data: tools, isLoading } = useQuery<ToolInfo[]>({
+  const { data: tools, isLoading } = useQuery({
     queryKey: ['mcp-tools', mcp?.name],
-    queryFn: () => api.tools(mcp!.name),
+    queryFn: () => api.tools(mcp!.name) as unknown as Promise<ToolInfo[]>,
     enabled: !!mcp && open,
   });
 

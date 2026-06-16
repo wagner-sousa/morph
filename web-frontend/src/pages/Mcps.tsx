@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Loader2, Plus } from 'lucide-react';
-import { api, type MCPConfig, type MCPTransport } from '../lib/api';
+import { api, type MCPConfig, type MCPStatus, type MCPTransport } from '../lib/api';
 import { useAddMcp, useDeleteMcp, useMcps, useRestartMcp, useUpdateMcp } from '../hooks/useMcps';
 import { MCPCard } from '../components/MCPCard';
 import { MCPToolsModal } from '../components/MCPToolsModal';
