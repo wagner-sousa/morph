@@ -129,6 +129,16 @@ export class Hub extends EventEmitter {
     if (isBuiltinTool(name)) {
       const result = this.callBuiltin(name);
       const builtinConversion = this.converter.convertResult(result);
+      this.logs.append({
+        mcpName: 'system',
+        toolName: name,
+        level: 'info',
+        message: 'built-in tool called',
+        inputJson: args !== undefined ? JSON.stringify(args) : undefined,
+        outputText: JSON.stringify(builtinConversion.result),
+        durationMs: 0,
+        tokensSaved: 0,
+      });
       return builtinConversion.result;
     }
 
