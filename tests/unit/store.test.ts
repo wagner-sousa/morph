@@ -66,4 +66,47 @@ describe('Store', () => {
     const limited = store.queryLogs({ limit: 3 });
     expect(limited).toHaveLength(3);
   });
+
+  it('stores and retrieves input_json / output_text', () => {
+    store.appendLog({
+      mcpName: 'fs',
+      toolName: 'read',
+      level: 'info',
+      message: 'ok',
+      inputJson: JSON.stringify({ path: '/tmp' }),
+      outputText: JSON.stringify({ content: 'done' }),
+    });
+    const logs = store.queryLogs();
+    expect(logs[0].inputJson).toBe(JSON.stringify({ path: '/tmp' }));
+    expect(logs[0].outputText).toBe(JSON.stringify({ content: 'done' }));
+  });
+
+  it('getLog returns a single log entry by id', () => {
+    store.appendLog({ mcpName: 'fs', toolName: 'read', level: 'info', message: 'entry' });
+    const id = store.queryLogs()[0].id;
+    const entry = store.getLog(id);
+    expect(entry).toBeDefined();
+    expect(entry!.message).toBe('entry');
+  });
+
+  it('getLog returns undefined for non-existent id', () => {
+    const entry = store.getLog(99999);
+    expect(entry).toBeUndefined();
+  });
+
+  it('getCallTotals returns aggregate stats', () => {
+    store.recordCall('fs', 'read', 100, 50);
+    store.recordCall('fs', 'write', 200, 30);
+    const totals = store.getCallTotals();
+    expect(totals.calls).toBe(2);
+    expect(totals.tokensSaved).toBe(80);
+    expect(totals.durationMs).toBe(300);
+  });
+
+  it('getCallTotals respects since filter', () => {
+    store.recordCall('fs', 'read', 100, 50);
+    const totals = store.getCallTotals(new Date(Date.now() + 86_400_000).toISOString()); // future
+    expect(totals.calls).toBe(0);
+    expect(totals.tokensSaved).toBe(0);
+  });
 });
