@@ -39,6 +39,10 @@ npx vitest run -t "auto-prefixes conflicting tool names"
 
 This repo follows **Specification-Driven Development**: write the contract first (`src/config/schema.ts` zod schema → `src/config/types.ts` inferred types), then a failing test, then the implementation. Source files are tagged with `SPEC:` (contracts) and `IMPL:` (implementations) header comments — preserve that distinction. The zod schema is the executable source of truth; `schema.json`/`mcp.schema.json` are **generated** — never hand-edit them, run `gen:schema`.
 
+### Spec Kit (governance layer)
+
+On top of the SDD-Zod loop, MORPH uses **[GitHub Spec Kit](https://github.com/github/spec-kit)** to give each feature a versioned specification. Project principles are codified in [.specify/memory/constitution.md](.specify/memory/constitution.md) (Principles I–V: zod-first, SPEC/IMPL, test-first, Docker/ESM, token savings); every `plan.md` must pass its Constitution Check gate. For **new features**, drive the flow with the installed skills: `/speckit-constitution → /speckit-specify → /speckit-plan → /speckit-tasks → /speckit-implement`. Each feature lives in `specs/NNN-feature/` (`spec.md`/`plan.md`/`tasks.md`, plus `data-model.md` when config is involved). The Spec Kit sits *above* the zod contract — the spec describes the feature, the zod schema remains the executable contract it references. v2.0 is documented retroactively in [specs/](specs/) (`001`–`010`).
+
 ## Architecture
 
 The runtime is a star around the **Hub** ([src/hub.ts](src/hub.ts)), which owns and wires every component. Request path:

@@ -16,7 +16,7 @@ that delivered them. All tasks are complete (`[X]`).
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story this task belongs to (US1–US4)
+- **[Story]**: Which user story this task belongs to (US1–US5)
 
 ## Path Conventions
 
@@ -147,7 +147,34 @@ each with its location.
 
 ---
 
-## Phase 7: Polish & Cross-Cutting Concerns
+## Phase 7: User Story 5 - Single data directory and env/flag path overrides (Priority: P2)
+
+**Goal**: Root all persisted paths under one directory (default `./data`, override via
+`MORPH_DATA_DIR`), resolve config/backend file locations with flag/env precedence, and derive
+the backend file as the suffix-preserving sibling of the gateway file.
+
+**Independent Test**: Set `MORPH_DATA_DIR`, start with no config flags, confirm DB, logs, and
+config all resolve under that directory.
+
+### Tests for User Story 5
+
+- [X] T023 [US5] Path-resolution tests: data-dir default + override, config precedence
+      (`${dataDir}/morph.json` → `./morph.json`), `.mcp.json` sibling derivation, explicit
+      overrides, in [tests/unit/paths.test.ts](tests/unit/paths.test.ts). *(commit ac01f5e)*
+
+### Implementation for User Story 5
+
+- [X] T024 [US5] Implement `resolvePaths` / `resolveMcpConfigPath` (`dataDir`, `configPath`,
+      `mcpPath`, `logDir` with `MORPH_DATA_DIR`/`MORPH_CONFIG`/`MORPH_MCP_CONFIG`/`MORPH_LOG_DIR`
+      overrides) in [src/config/paths.ts](src/config/paths.ts). *(commit ac01f5e)*
+- [X] T025 [US5] Wire resolved paths into bootstrap ([src/index.ts](src/index.ts)) and the
+      SQLite/OAuth/log stores so a single volume mount persists everything. *(commit ac01f5e)*
+
+**Checkpoint**: One data dir + overrides; container needs a single volume mount.
+
+---
+
+## Phase 8: Polish & Cross-Cutting Concerns
 
 - [X] T020 [P] Keep generated `schema.json` / `mcp.schema.json` in sync via
       `npm run gen:schema` (never hand-edited). *(Constitution Principle I)*
@@ -165,7 +192,8 @@ each with its location.
 - **Foundational (Phase 2)**: Depends on Setup — BLOCKS all user stories (schema + types).
 - **User Stories (Phase 3+)**: All depend on the zod contract from Phase 2. US1 and US2 are
   both P1; US2's watcher reuses the US1 loader. US3 and US4 layer onto the loader.
-- **Polish (Phase 7)**: Depends on all stories.
+- **User Story 5 (Phase 7)**: Depends on the loader/types; independent of US2–US4.
+- **Polish (Phase 8)**: Depends on all stories.
 
 ### Within Each User Story
 
@@ -195,4 +223,5 @@ each with its location.
 
 - The zod schema is the single source of truth; JSON Schemas and TS types are derived.
 - All tasks reflect already-merged work (commits d5c2976, 5be6fb9, 73404fe, ac01f5e).
-- `config-loader.test.ts` has ~7 tests; `env-resolver.test.ts` has ~5.
+- `config-loader.test.ts` has ~7 tests; `env-resolver.test.ts` has ~5; `paths.test.ts`
+  covers the single-data-dir resolution (US5).

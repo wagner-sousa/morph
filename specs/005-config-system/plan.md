@@ -91,6 +91,7 @@ src/config/
 ├── schema.ts            # SPEC: executable zod schema (single source of truth)
 ├── types.ts             # SPEC: TypeScript types via z.infer
 ├── loader.ts            # IMPL: read + ${ENV} resolution + zod validation
+├── paths.ts             # IMPL: single ./data dir + config/log path resolution (env/flags)
 └── watcher.ts           # IMPL: chokidar watch, debounced, emits validated configs
 
 src/utils/
@@ -101,7 +102,8 @@ scripts/
 
 tests/unit/
 ├── config-loader.test.ts
-└── env-resolver.test.ts
+├── env-resolver.test.ts
+└── paths.test.ts        # single-data-dir + path-override resolution (US5)
 
 # generated artifacts (do not hand-edit)
 schema.json

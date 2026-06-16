@@ -107,6 +107,36 @@ each problem with its location.
    loaded, **Then** loading fails and the message names the field path and the violated
    rule.
 
+### User Story 5 - Locate config and data via a single directory and env overrides (Priority: P2)
+
+An operator runs MORPH in a container and wants everything it persists — the database, OAuth
+sessions, logs, and (optionally) the config files — under one directory so a single volume
+mount is enough. The location of each path can be overridden by an environment variable or a
+command-line flag, and the backend file is found automatically next to the gateway file.
+
+**Why this priority**: It makes containerized deployment a one-mount operation and keeps
+local runs zero-config, but the gateway still works with explicit paths, so it ranks below
+the core load/reload stories.
+
+**Independent Test**: Set the data-directory variable, start the gateway with no explicit
+config flags, and confirm the database, logs, and config files all resolve under that one
+directory.
+
+**Acceptance Scenarios**:
+
+1. **Given** no flags or path variables, **When** the gateway starts, **Then** all persisted
+   paths resolve under the default data directory (`./data`), and the config is read from
+   `${dataDir}/morph.json` if present, otherwise `./morph.json`.
+2. **Given** the data-directory variable is set, **When** the gateway starts, **Then** the
+   database, OAuth sessions, and logs all resolve under that directory.
+3. **Given** a gateway config path (flag or variable), **When** the backend file path is not
+   given explicitly, **Then** it is derived as the sibling of the gateway file, preserving
+   any suffix (e.g. `morph.demo.json` → `.mcp.demo.json`).
+4. **Given** explicit config/backend path overrides, **When** the gateway starts, **Then**
+   those explicit paths take precedence over the directory-based defaults.
+
+---
+
 ### Edge Cases
 
 - A configuration file is missing or unreadable on disk → loading fails with a clear path
@@ -148,6 +178,13 @@ each problem with its location.
 - **FR-013**: The system MUST treat the validated configuration shape as the single source
   of truth, with the editor-facing validation schemas derived from it rather than
   maintained separately.
+- **FR-014**: The system MUST root all persisted data (database, OAuth sessions, logs, and
+  optionally the config files) under a single data directory, defaulting to `./data` and
+  overridable by environment variable.
+- **FR-015**: The system MUST resolve the config and backend file locations with explicit
+  flags/variables taking precedence, falling back to the data directory and then the working
+  directory, and MUST derive the backend file as the suffix-preserving sibling of the
+  gateway file when not given explicitly.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -161,6 +198,9 @@ each problem with its location.
 - **TOON options**: How tool results are converted to TOON — whether conversion is
   automatic, the field delimiter, indentation, how deep nested structures are flattened,
   and the size threshold above which conversion applies.
+- **Resolved paths**: The set of on-disk locations the gateway uses — the data directory and
+  the derived database, OAuth-session, log, gateway-config, and backend-config paths — each
+  with a default and an environment/flag override.
 
 ## Success Criteria *(mandatory)*
 
@@ -176,6 +216,8 @@ each problem with its location.
   every secret can be supplied via an environment placeholder.
 - **SC-005**: An invalid configuration produces a single error message that lists every
   problem and its location, so an operator can fix all issues in one pass.
+- **SC-006**: A containerized deployment needs exactly one volume mount (the data directory)
+  to persist the database, OAuth sessions, logs, and config across restarts.
 
 ## Assumptions
 
