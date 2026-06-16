@@ -18,29 +18,161 @@ support `${ENV_VAR}` interpolation, resolved from the environment / `.env`.
 
 ## `mcpServers[]`
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `name` | string | Unique; `[A-Za-z0-9_.-]` |
-| `enabled` | boolean | Toggle without removing (default `true`) |
-| `description` | string? | Human-readable |
-| `labels` | `Record<string,string>?` | Metadata tags |
-| `aliases` | `Record<string,string>?` | `originalName → exposedName` overrides |
-| `transport` | object | One of the three below |
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `name` | string | ✅ | Unique; `[A-Za-z0-9_.-]` |
+| `enabled` | boolean | — | Toggle without removing (default `true`) |
+| `description` | string | — | Human-readable label |
+| `labels` | `Record<string,string>` | — | Metadata tags (team, type, env) |
+| `aliases` | `Record<string,string>` | — | `originalName → exposedName` overrides |
+| `transport` | object | ✅ | One of the three types below |
 
-### Transports
+> **Important:** The `name` field is the MCP's logical name used for routing.
+> When two MCPs share tool names, they get auto-prefixed as `${name}_${tool}`.
+> Set `aliases` to override specific tool names explicitly.
 
-```jsonc
-// stdio — local process
-{ "type": "stdio", "command": "npx", "args": ["-y", "pkg"],
-  "env": { "K": "v" }, "cwd": "/path", "timeoutMs": 30000 }
+### Transport: STDIO (local process)
 
-// http — Streamable HTTP
-{ "type": "http", "url": "https://host/mcp",
-  "headers": { "Authorization": "Bearer ${API_KEY}" }, "apiKey": "${API_KEY}" }
+```json
+{
+  "name": "filesystem",
+  "enabled": true,
+  "description": "Local file system access",
+  "labels": { "team": "engineering", "type": "utility" },
+  "aliases": { "read_file": "fs_read" },
+  "transport": {
+    "type": "stdio",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/data"],
+    "env": { "NODE_OPTIONS": "--max-old-space-size=512" },
+    "cwd": "/opt/mcp",
+    "timeoutMs": 30000
+  }
+}
+```
 
-// sse — legacy Server-Sent Events
-{ "type": "sse", "url": "https://host/sse",
-  "headers": { "Authorization": "Bearer ${API_KEY}" }, "reconnectIntervalMs": 3000 }
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `type` | `"stdio"` | ✅ | |
+| `command` | string | ✅ | Executable path or name |
+| `args` | string[] | — | Command arguments (default `[]`) |
+| `env` | `Record<string,string>` | — | Environment variables, supports `${ENV_VAR}` |
+| `cwd` | string | — | Working directory |
+| `timeoutMs` | number | — | Process timeout in milliseconds |
+
+### Transport: HTTP (Streamable HTTP)
+
+```json
+{
+  "name": "stripe",
+  "enabled": true,
+  "description": "Stripe API via MCP",
+  "labels": { "team": "payments", "env": "production" },
+  "transport": {
+    "type": "http",
+    "url": "https://mcp.stripe.com",
+    "headers": {
+      "Authorization": "Bearer ${STRIPE_API_KEY}",
+      "X-Custom": "value"
+    },
+    "apiKey": "${STRIPE_API_KEY}"
+  }
+}
+```
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `type` | `"http"` | ✅ | |
+| `url` | string | ✅ | Server endpoint (must point to the MCP endpoint) |
+| `headers` | `Record<string,string>` | — | HTTP headers sent with every request |
+| `apiKey` | string | — | Shorthand for `Authorization: Bearer <key>`. Bypasses OAuth flow when set |
+
+> **OAuth:** When `apiKey` is not set and the server returns 401, MORPH
+> automatically initiates the OAuth 2.0 Authorization Code flow with PKCE.
+> The server must expose a valid `/.well-known/oauth-authorization-server`
+> endpoint and support Dynamic Client Registration.
+
+### Transport: SSE (Server-Sent Events)
+
+```json
+{
+  "name": "stream-server",
+  "enabled": true,
+  "description": "Legacy SSE-based MCP server",
+  "transport": {
+    "type": "sse",
+    "url": "https://example.com/sse",
+    "headers": {
+      "Authorization": "Bearer ${API_KEY}"
+    },
+    "reconnectIntervalMs": 5000
+  }
+}
+```
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `type` | `"sse"` | ✅ | |
+| `url` | string | ✅ | SSE endpoint URL |
+| `headers` | `Record<string,string>` | — | HTTP headers for both SSE and POST requests |
+| `reconnectIntervalMs` | number | — | Reconnection delay on disconnect (default SDK behaviour) |
+
+### Complete multi-server example
+
+```json
+{
+  "mcpServers": [
+    {
+      "name": "demo-stdio",
+      "enabled": true,
+      "description": "Demo MCP via STDIO",
+      "transport": {
+        "type": "stdio",
+        "command": "node",
+        "args": ["dist/examples/demo-mcp-server.js"]
+      }
+    },
+    {
+      "name": "demo-http",
+      "enabled": true,
+      "description": "Demo MCP via HTTP",
+      "transport": {
+        "type": "http",
+        "url": "http://localhost:3200/mcp"
+      }
+    },
+    {
+      "name": "demo-http-oauth",
+      "enabled": true,
+      "description": "Demo MCP via HTTP with OAuth",
+      "transport": {
+        "type": "http",
+        "url": "http://localhost:3202/mcp",
+        "apiKey": "demo-token"
+      }
+    },
+    {
+      "name": "demo-sse",
+      "enabled": true,
+      "description": "Demo MCP via SSE",
+      "transport": {
+        "type": "sse",
+        "url": "http://localhost:3201/sse"
+      }
+    },
+    {
+      "name": "demo-stdio-params",
+      "enabled": true,
+      "description": "Demo MCP with parameterized tools",
+      "transport": {
+        "type": "stdio",
+        "command": "node",
+        "args": ["dist/examples/param-mcp-server.js", "--base-path", "/tmp/demo"],
+        "env": { "DEMO_MODE": "true" }
+      }
+    }
+  ]
+}
 ```
 
 ## `toon`
@@ -53,6 +185,18 @@ support `${ENV_VAR}` interpolation, resolved from the environment / `.env`.
 | `flattenDepth` | int ≥0 | `4` | >0 enables safe key-folding |
 | `threshold` | int ≥0 | `100` | Min chars before converting |
 
+```json
+{
+  "toon": {
+    "autoConvert": true,
+    "delimiter": "comma",
+    "indent": 2,
+    "flattenDepth": 4,
+    "threshold": 100
+  }
+}
+```
+
 ## `webUi`
 
 | Field | Type | Default |
@@ -60,10 +204,22 @@ support `${ENV_VAR}` interpolation, resolved from the environment / `.env`.
 | `enabled` | boolean | `true` |
 | `host` | string | `0.0.0.0` |
 | `port` | int | `3100` |
+| `publicUrl` | string | — |
 | `auth.username` / `auth.passwordHash` | string | — |
 
 Basic Auth is enabled when `MORPH_WEB_USERNAME` (env) is set; requests to
 `/api/*` and `/ws` are then challenged.
+
+```json
+{
+  "webUi": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 3101,
+    "publicUrl": "https://morph.example.com"
+  }
+}
+```
 
 ## `health`
 
@@ -72,6 +228,63 @@ Basic Auth is enabled when `MORPH_WEB_USERNAME` (env) is set; requests to
 | `intervalMs` | int | `30000` |
 | `timeoutMs` | int | `5000` |
 | `maxRetries` | int | `3` |
+
+```json
+{
+  "health": {
+    "intervalMs": 30000,
+    "timeoutMs": 5000,
+    "maxRetries": 3
+  }
+}
+```
+
+## Full morph.json reference
+
+```json
+{
+  "$schema": "./schema.json",
+  "morph": {
+    "version": "1.0",
+    "logLevel": "info",
+    "allowConflicts": false
+  },
+  "mcpServers": [
+    {
+      "name": "example",
+      "enabled": true,
+      "description": "Example server",
+      "labels": { "env": "dev" },
+      "aliases": { "read_file": "fs_read" },
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@org/server"],
+        "env": { "TOKEN": "${TOKEN}" },
+        "cwd": "/opt/server",
+        "timeoutMs": 30000
+      }
+    }
+  ],
+  "toon": {
+    "autoConvert": true,
+    "delimiter": "comma",
+    "indent": 2,
+    "flattenDepth": 4,
+    "threshold": 100
+  },
+  "webUi": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 3101
+  },
+  "health": {
+    "intervalMs": 30000,
+    "timeoutMs": 5000,
+    "maxRetries": 3
+  }
+}
+```
 
 ## Environment variables
 
@@ -86,6 +299,16 @@ Basic Auth is enabled when `MORPH_WEB_USERNAME` (env) is set; requests to
 
 ## Importing existing configs
 
-`morph import --from <file> [--format claude|vscode|copilot|auto] [--merge <morph.json>] [--dry-run]`.
+```bash
+# Claude Desktop
+morph import --from ~/.config/Claude/claude_desktop_config.json
+
+# VS Code workspace
+morph import --from .vscode/mcp.json --merge ./morph.json
+
+# GitHub Copilot CLI
+morph import --from ~/.copilot/mcp-config.json --dry-run
+```
+
 `${input:*}` (VS Code) and `$COPILOT_MCP_*` (Copilot) references are surfaced as
 warnings to map manually — literal secrets are never copied.
