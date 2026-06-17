@@ -78,6 +78,16 @@ export class Store {
     } catch {
       /* column exists */
     }
+    try {
+      this.db.exec(`ALTER TABLE logs ADD COLUMN mapped_output TEXT`);
+    } catch {
+      /* column exists */
+    }
+    try {
+      this.db.exec(`ALTER TABLE logs ADD COLUMN selected_fields TEXT`);
+    } catch {
+      /* column exists */
+    }
   }
 
   appendLog(
@@ -86,8 +96,8 @@ export class Store {
   ): number {
     const info = this.db
       .prepare(
-        `INSERT INTO logs (mcp_name, tool_name, level, message, input_json, output_text, raw_output, original_tokens, toon_tokens, duration_ms, tokens_saved, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`,
+        `INSERT INTO logs (mcp_name, tool_name, level, message, input_json, output_text, raw_output, mapped_output, selected_fields, original_tokens, toon_tokens, duration_ms, tokens_saved, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`,
       )
       .run(
         entry.mcpName,
@@ -97,6 +107,8 @@ export class Store {
         entry.inputJson ?? null,
         entry.outputText ?? null,
         entry.rawOutput ?? null,
+        entry.mappedOutput ?? null,
+        entry.selectedFields ?? null,
         entry.originalTokens ?? null,
         entry.toonTokens ?? null,
         entry.durationMs ?? null,
@@ -135,6 +147,8 @@ export class Store {
       inputJson: (r.input_json as string | null) ?? undefined,
       outputText: (r.output_text as string | null) ?? undefined,
       rawOutput: (r.raw_output as string | null) ?? undefined,
+      mappedOutput: (r.mapped_output as string | null) ?? undefined,
+      selectedFields: (r.selected_fields as string | null) ?? undefined,
       originalTokens: (r.original_tokens as number | null) ?? undefined,
       toonTokens: (r.toon_tokens as number | null) ?? undefined,
       durationMs: (r.duration_ms as number | null) ?? undefined,
@@ -203,6 +217,8 @@ export class Store {
       inputJson: (row.input_json as string | null) ?? undefined,
       outputText: (row.output_text as string | null) ?? undefined,
       rawOutput: (row.raw_output as string | null) ?? undefined,
+      mappedOutput: (row.mapped_output as string | null) ?? undefined,
+      selectedFields: (row.selected_fields as string | null) ?? undefined,
       originalTokens: (row.original_tokens as number | null) ?? undefined,
       toonTokens: (row.toon_tokens as number | null) ?? undefined,
       durationMs: (row.duration_ms as number | null) ?? undefined,

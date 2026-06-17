@@ -35,6 +35,19 @@ function formatJson(s?: string): string {
   }
 }
 
+function parseSelection(
+  s?: string,
+): { mode: string; fields: string[] } | null {
+  if (!s) return null;
+  try {
+    const parsed = JSON.parse(s) as { mode: string; fields: string[] };
+    if (parsed && Array.isArray(parsed.fields)) return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function LogDetail() {
   const { id } = useParams({ from: "/logs/$id" });
   const { data, isLoading, error } = useQuery({
@@ -48,6 +61,7 @@ export function LogDetail() {
 
   const jsonTokens = data.originalTokens ?? estimateTokens(data.rawOutput);
   const toonTokens = data.toonTokens ?? estimateTokens(data.outputText);
+  const selection = parseSelection(data.selectedFields);
   const savedTokens = jsonTokens - toonTokens;
   const savingsPct =
     jsonTokens > 0 ? ((savedTokens / jsonTokens) * 100).toFixed(1) : "0.0";
@@ -87,6 +101,19 @@ export function LogDetail() {
           <span className="text-morph-muted">Tokens Saved:</span>{" "}
           {data.tokensSaved ?? "\u2014"}
         </div>
+        <div className="col-span-2">
+          <span className="text-morph-muted">Selected fields:</span>{" "}
+          {selection ? (
+            <>
+              <Badge variant="secondary">{selection.mode}</Badge>{" "}
+              <code className="font-mono text-xs">
+                {selection.fields.join(", ")}
+              </code>
+            </>
+          ) : (
+            "none"
+          )}
+        </div>
       </div>
 
       <div>
@@ -96,15 +123,38 @@ export function LogDetail() {
         </pre>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-4">
         <div>
-          <h2 className="mb-2 text-lg font-semibold">JSON Original</h2>
+          <h2 className="mb-2 text-lg font-semibold">
+            1. JSON recebido{" "}
+            <span className="text-sm font-normal text-morph-muted">
+              (do backend)
+            </span>
+          </h2>
           <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-morph-bg-alt p-3 font-mono text-xs">
             {formatJson(data.rawOutput)}
           </pre>
         </div>
+        {selection && (
+          <div>
+            <h2 className="mb-2 text-lg font-semibold">
+              2. Mapeado{" "}
+              <span className="text-sm font-normal text-morph-muted">
+                (ap\u00f3s sele\u00e7\u00e3o de campos)
+              </span>
+            </h2>
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-morph-bg-alt p-3 font-mono text-xs">
+              {formatJson(data.mappedOutput)}
+            </pre>
+          </div>
+        )}
         <div>
-          <h2 className="mb-2 text-lg font-semibold">TOON</h2>
+          <h2 className="mb-2 text-lg font-semibold">
+            {selection ? "3. " : "2. "}TOON{" "}
+            <span className="text-sm font-normal text-morph-muted">
+              (sa\u00edda para o agente)
+            </span>
+          </h2>
           <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-morph-bg-alt p-3 font-mono text-xs">
             {data.outputText ?? "\u2014"}
           </pre>

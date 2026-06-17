@@ -209,6 +209,38 @@ describe("Store", () => {
     expect(log.toonTokens).toBeUndefined();
   });
 
+  it("stores and retrieves mappedOutput / selectedFields", () => {
+    const id = store.appendLog({
+      mcpName: "clickup",
+      toolName: "list_tasks",
+      level: "info",
+      message: "ok",
+      rawOutput: '{"tasks":[{"id":1,"big":"x"}]}',
+      mappedOutput: '{"tasks":[{"id":1}]}',
+      selectedFields: JSON.stringify({ mode: "include", fields: ["tasks.id"] }),
+    });
+    const fromQuery = store.queryLogs()[0];
+    expect(fromQuery.mappedOutput).toBe('{"tasks":[{"id":1}]}');
+    expect(fromQuery.selectedFields).toBe(
+      JSON.stringify({ mode: "include", fields: ["tasks.id"] }),
+    );
+    const fromGet = store.getLog(id);
+    expect(fromGet?.mappedOutput).toBe('{"tasks":[{"id":1}]}');
+    expect(fromGet?.selectedFields).toContain("include");
+  });
+
+  it("mappedOutput / selectedFields are undefined when not provided", () => {
+    store.appendLog({
+      mcpName: "fs",
+      toolName: "t",
+      level: "info",
+      message: "plain",
+    });
+    const log = store.queryLogs()[0];
+    expect(log.mappedOutput).toBeUndefined();
+    expect(log.selectedFields).toBeUndefined();
+  });
+
   it("getTotalizers returns zeros for empty store", () => {
     const t = store.getTotalizers();
     expect(t.jsonTokens).toBe(0);

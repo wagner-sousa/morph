@@ -246,6 +246,8 @@ export class Hub extends EventEmitter {
     let savingsPercent = 0;
     let conversionOutput: string | undefined;
     let rawOutput: string | undefined;
+    let mappedOutput: string | undefined;
+    let selectedFields: string | undefined;
     let originalTokens: number | undefined;
     let toonTokens: number | undefined;
     try {
@@ -261,6 +263,13 @@ export class Hub extends EventEmitter {
       const selection =
         this.registry.getDefinition(mcpName)?.fieldSelection?.[originalName];
       const projected = selection ? this.projectResult(raw, selection) : raw;
+      if (selection) {
+        selectedFields = JSON.stringify(selection);
+        mappedOutput =
+          projected.content[0]?.type === "text"
+            ? projected.content[0].text
+            : JSON.stringify(projected);
+      }
 
       const conversion = this.converter.convertResult(projected);
       conversionOutput =
@@ -300,6 +309,8 @@ export class Hub extends EventEmitter {
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
         outputText: conversionOutput,
         rawOutput,
+        mappedOutput,
+        selectedFields,
         originalTokens,
         toonTokens,
         durationMs,
@@ -314,6 +325,8 @@ export class Hub extends EventEmitter {
         inputJson: args !== undefined ? JSON.stringify(args) : undefined,
         outputText: conversionOutput,
         rawOutput,
+        mappedOutput,
+        selectedFields,
         originalTokens,
         toonTokens,
         durationMs,

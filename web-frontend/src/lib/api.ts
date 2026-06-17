@@ -80,6 +80,8 @@ export interface LogEntry {
   inputJson?: string;
   outputText?: string;
   rawOutput?: string;
+  mappedOutput?: string;
+  selectedFields?: string;
   originalTokens?: number;
   toonTokens?: number;
   durationMs?: number;

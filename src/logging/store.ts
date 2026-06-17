@@ -18,6 +18,10 @@ export interface LogEntry {
   inputJson?: string;
   outputText?: string;
   rawOutput?: string;
+  /** JSON after per-tool field projection (the "mapped" stage), if any. */
+  mappedOutput?: string;
+  /** Serialized field selection applied to this call, if any. */
+  selectedFields?: string;
   originalTokens?: number;
   toonTokens?: number;
   durationMs?: number;
