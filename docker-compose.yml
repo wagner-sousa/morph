@@ -26,7 +26,7 @@ services:
       # - MORPH_WEB_ENABLED=true
       # - MORPH_WEB_HOST=0.0.0.0
       # - MORPH_WEB_PORT=3100
-      # - MORPH_WEB_PUBLIC_URL=http://localhost:3101
+      - MORPH_WEB_PUBLIC_URL=http://localhost:3101
       # - MORPH_ALLOW_CONFLICTS=false
       # - MORPH_TOOL_PREFIX=
       # - MORPH_TOON_AUTO_CONVERT=true
