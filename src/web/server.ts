@@ -266,8 +266,9 @@ export class WebServer {
     });
 
     // MCP protocol over HTTP (direct JSON-RPC handler).
-    const mcpHandler = this.options.mcpServer?.createDirectHandler();
-    if (mcpHandler) {
+    const mcpServer = this.options.mcpServer;
+    const mcpHandler = mcpServer?.createDirectHandler();
+    if (mcpServer && mcpHandler) {
       app.post("/mcp", async (request, reply) => {
         const body = request.body;
         const { status, body: json } = await mcpHandler(body);
@@ -275,6 +276,37 @@ export class WebServer {
       });
 
       app.get("/mcp", (request, reply) => {
+        reply.hijack();
+        const res = reply.raw;
+        res.writeHead(200, {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        });
+        const keepAlive = setInterval(
+          () => res.write(": keepalive\n\n"),
+          15000,
+        );
+        request.raw.on("close", () => {
+          clearInterval(keepAlive);
+        });
+      });
+
+      // Per-MCP scoped endpoint: same protocol as /mcp but limited to a single
+      // backend's tools. Additive — the aggregated /mcp above is unchanged.
+      app.post("/mcp/:name", async (request, reply) => {
+        const { name } = request.params as { name: string };
+        if (hub.registry.getTools(name).length === 0)
+          throw new MorphError("MCP_NOT_FOUND", `MCP "${name}" not found`);
+        const handler = mcpServer.createPerMcpDirectHandler(name);
+        const { status, body } = await handler(request.body);
+        return reply.status(status).type("application/json").send(body);
+      });
+
+      app.get("/mcp/:name", (request, reply) => {
+        const { name } = request.params as { name: string };
+        if (hub.registry.getTools(name).length === 0)
+          throw new MorphError("MCP_NOT_FOUND", `MCP "${name}" not found`);
         reply.hijack();
         const res = reply.raw;
         res.writeHead(200, {
@@ -388,6 +420,13 @@ export class WebServer {
 
   async close(): Promise<void> {
     await this.app.close();
+  }
+
+  /** Test seam: configure all routes without binding a port. */
+  async buildForTest(): Promise<FastifyInstance> {
+    await this.configure();
+    await this.app.ready();
+    return this.app;
   }
 }
 
