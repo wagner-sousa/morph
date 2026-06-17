@@ -149,47 +149,53 @@ function ToolFieldsEditor({
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-xs text-morph-muted">
+    <div className="flex flex-col min-h-0 flex-1">
+      <p className="text-xs text-morph-muted pb-3">
         Project each tool&apos;s JSON response before TOON conversion. Use
         dot-notation for nested/array paths (e.g. <code>tasks.id</code>). One
         path per line. Empty = no projection.
       </p>
-      {tools.map((tool) => (
-        <div
-          key={tool.name}
-          className="rounded-md border border-morph-border p-3 space-y-2"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <code className="text-sm font-semibold">{tool.name}</code>
-            <Select
-              className="w-32"
-              value={drafts[tool.name]?.mode ?? "include"}
-              onChange={(e) =>
-                setDraft(tool.name, {
-                  mode: e.target.value as "include" | "exclude",
-                })
-              }
-              options={[
-                { value: "include", label: "Include" },
-                { value: "exclude", label: "Exclude" },
-              ]}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
+        {tools.map((tool) => (
+          <div
+            key={tool.name}
+            className="rounded-md border border-morph-border p-3 space-y-2"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 space-y-0.5">
+                <code className="text-sm font-semibold">{tool.name}</code>
+                {tool.description && (
+                  <p className="text-xs text-morph-muted">{tool.description}</p>
+                )}
+              </div>
+              <Select
+                className="w-32 shrink-0"
+                value={drafts[tool.name]?.mode ?? "include"}
+                onChange={(e) =>
+                  setDraft(tool.name, {
+                    mode: e.target.value as "include" | "exclude",
+                  })
+                }
+                options={[
+                  { value: "include", label: "Include" },
+                  { value: "exclude", label: "Exclude" },
+                ]}
+              />
+            </div>
+            <textarea
+              className="flex min-h-[60px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-xs font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
+              value={drafts[tool.name]?.text ?? ""}
+              onChange={(e) => setDraft(tool.name, { text: e.target.value })}
+              placeholder={"id\nname\ndata.items.title"}
             />
           </div>
-          <textarea
-            className="flex min-h-[60px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-xs font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
-            value={drafts[tool.name]?.text ?? ""}
-            onChange={(e) => setDraft(tool.name, { text: e.target.value })}
-            placeholder={"id\nname\ndata.items.title"}
-          />
-        </div>
-      ))}
-      <Button
-        onClick={() => void handleSave()}
-        disabled={updateMcp.isPending}
-      >
-        {updateMcp.isPending ? "Saving..." : "Save field selection"}
-      </Button>
+        ))}
+      </div>
+      <div className="border-t border-morph-border pt-3 mt-3">
+        <Button onClick={() => void handleSave()} disabled={updateMcp.isPending}>
+          {updateMcp.isPending ? "Saving..." : "Save field selection"}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -222,7 +228,7 @@ export function MCPToolsModal({
         ) : !tools || tools.length === 0 ? (
           <p className="text-sm text-morph-muted">No tools available.</p>
         ) : (
-          <Tabs defaultValue="toon" className="flex-1 flex flex-col">
+          <Tabs defaultValue="toon" className="flex-1 flex flex-col min-h-0">
             <TabsList className="self-start">
               <TabsTrigger value="toon">TOON</TabsTrigger>
               <TabsTrigger value="json">JSON</TabsTrigger>
@@ -230,7 +236,7 @@ export function MCPToolsModal({
             </TabsList>
             <TabsContent
               value="toon"
-              className="flex-1 overflow-y-auto space-y-4 pr-1"
+              className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1"
             >
               {tools.map((tool) => (
                 <ToolCardToon key={tool.name} tool={tool} />
@@ -238,7 +244,7 @@ export function MCPToolsModal({
             </TabsContent>
             <TabsContent
               value="json"
-              className="flex-1 overflow-y-auto space-y-4 pr-1"
+              className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1"
             >
               {tools.map((tool) => (
                 <ToolCardJson key={tool.name} tool={tool} />
@@ -246,7 +252,7 @@ export function MCPToolsModal({
             </TabsContent>
             <TabsContent
               value="fields"
-              className="flex-1 overflow-y-auto pr-1"
+              className="flex-1 min-h-0 flex flex-col overflow-hidden"
             >
               {mcp && <ToolFieldsEditor mcpName={mcp.name} tools={tools} />}
             </TabsContent>
