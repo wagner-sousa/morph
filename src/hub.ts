@@ -16,6 +16,8 @@ import { MCPClientRegistry } from "./mcp-client/registry.js";
 import { OAuthStore } from "./mcp-client/oauth-store.js";
 import { Router } from "./router/index.js";
 import { ToonConverter } from "./toon/converter.js";
+import { estimateTokens } from "./toon/stats.js";
+import { applyFieldSelection } from "./projection/project.js";
 import { HealthChecker } from "./health/checker.js";
 import { getVersionInfo } from "./utils/version.js";
 import { ConfigWatcher } from "./config/watcher.js";
@@ -252,18 +254,33 @@ export class Hub extends EventEmitter {
         raw.content[0]?.type === "text"
           ? raw.content[0].text
           : JSON.stringify(raw);
-      const conversion = this.converter.convertResult(raw);
-      if (conversion.savings) {
-        tokensSaved =
-          conversion.savings.originalTokens - conversion.savings.toonTokens;
-        savingsPercent = conversion.savings.percent;
-        originalTokens = conversion.savings.originalTokens;
-        toonTokens = conversion.savings.toonTokens;
-      }
+
+      // Per-tool field projection, applied to the JSON the backend returned
+      // BEFORE TOON conversion. The token index below still counts the
+      // received JSON (rawOutput), so projection savings are visible.
+      const selection =
+        this.registry.getDefinition(mcpName)?.fieldSelection?.[originalName];
+      const projected = selection ? this.projectResult(raw, selection) : raw;
+
+      const conversion = this.converter.convertResult(projected);
       conversionOutput =
         conversion.result.content[0]?.type === "text"
           ? conversion.result.content[0].text
           : JSON.stringify(conversion.result);
+
+      // Index = tokens of the JSON we received vs the TOON we emit. Only
+      // recorded when something actually changed (projection or conversion),
+      // so plain passthrough calls keep their previous (unset) accounting.
+      if (selection || conversion.savings) {
+        originalTokens = estimateTokens(rawOutput);
+        toonTokens = estimateTokens(conversionOutput ?? "");
+        tokensSaved = originalTokens - toonTokens;
+        savingsPercent =
+          originalTokens === 0
+            ? 0
+            : Math.round(((originalTokens - toonTokens) / originalTokens) * 1000) /
+              10;
+      }
       return conversion.result;
     } catch (err) {
       success = false;
@@ -304,6 +321,29 @@ export class Hub extends EventEmitter {
       });
       this.emit("tool:called", name, mcpName, durationMs);
     }
+  }
+
+  /**
+   * Apply a per-tool field selection to every JSON text item in a result,
+   * returning a new CallToolResult. Non-JSON / non-text items pass through.
+   */
+  private projectResult(
+    result: CallToolResult,
+    selection: { mode: "include" | "exclude"; fields: string[] },
+  ): CallToolResult {
+    if (!Array.isArray(result.content)) return result;
+    const content = result.content.map((item) => {
+      if (item.type !== "text" || typeof item.text !== "string") return item;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(item.text);
+      } catch {
+        return item; // not JSON — leave untouched
+      }
+      const projected = applyFieldSelection(parsed, selection);
+      return { ...item, text: JSON.stringify(projected) };
+    });
+    return { ...result, content };
   }
 
   private callBuiltin(name: string): CallToolResult {

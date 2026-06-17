@@ -388,6 +388,11 @@ export function Mcps() {
   const updateMcp = useUpdateMcp();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<MCPForm | null>(null);
+  // Carried across an edit so saving via the main dialog doesn't drop the
+  // per-tool field selection (which is edited in the Tools modal).
+  const [editingFieldSelection, setEditingFieldSelection] = useState<
+    MCPConfig["fieldSelection"]
+  >(undefined);
   const [oauthAdding, setOauthAdding] = useState<string | null>(null);
   const [toolsMcp, setToolsMcp] = useState<MCPStatus | null>(null);
 
@@ -509,6 +514,7 @@ export function Mcps() {
           : undefined,
       enabled: cfg.enabled,
     };
+    setEditingFieldSelection(cfg.fieldSelection);
     setEditingConfig(form);
     setDialogOpen(true);
   };
@@ -526,6 +532,9 @@ export function Mcps() {
           ...(data.description ? { description: data.description } : {}),
           ...(data.labels ? { labels: parseLines(data.labels) } : {}),
           ...(data.aliases ? { aliases: parseLines(data.aliases) } : {}),
+          ...(editingFieldSelection
+            ? { fieldSelection: editingFieldSelection }
+            : {}),
         },
       });
       toast.success(`Updated MCP "${data.name}"`);
