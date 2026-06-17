@@ -45,9 +45,15 @@ const mcpSchema = z.object({
   labels: z.string().optional(),
   aliases: z.string().optional(),
   cwd: z.string().optional(),
-  timeoutMs: z.coerce.number().int().positive().optional(),
+  timeoutMs: z.preprocess(
+    (v) => (v === "" || v == null ? undefined : v),
+    z.coerce.number().int().positive().optional(),
+  ),
   apiKey: z.string().optional(),
-  reconnectIntervalMs: z.coerce.number().int().positive().optional(),
+  reconnectIntervalMs: z.preprocess(
+    (v) => (v === "" || v == null ? undefined : v),
+    z.coerce.number().int().positive().optional(),
+  ),
   enabled: z.boolean().default(true),
 });
 
