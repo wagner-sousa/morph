@@ -25,12 +25,19 @@ export interface SseTransport {
 
 export type MCPTransport = StdioTransport | HttpTransport | SseTransport;
 
+export interface FieldSelection {
+  mode: "include" | "exclude";
+  fields: string[];
+}
+
 export interface MCPConfig {
   name: string;
   enabled: boolean;
   description?: string;
   labels?: Record<string, string>;
   aliases?: Record<string, string>;
+  /** Per-tool response field projection, keyed by backend tool name. */
+  fieldSelection?: Record<string, FieldSelection>;
   transport: MCPTransport;
 }
 
@@ -73,6 +80,8 @@ export interface LogEntry {
   inputJson?: string;
   outputText?: string;
   rawOutput?: string;
+  mappedOutput?: string;
+  selectedFields?: string;
   originalTokens?: number;
   toonTokens?: number;
   durationMs?: number;

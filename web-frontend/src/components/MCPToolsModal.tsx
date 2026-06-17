@@ -1,7 +1,12 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { type MCPStatus, api } from "../lib/api";
+import { toast } from "sonner";
+import { type FieldSelection, type MCPStatus, api } from "../lib/api";
+import { useUpdateMcp } from "../hooks/useMcps";
 import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Select } from "./ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 
@@ -74,6 +79,121 @@ function ToolCardJson({ tool }: ToolCardProps) {
   );
 }
 
+/** Local editor state per tool: projection mode + one field path per line. */
+interface FieldDraft {
+  mode: "include" | "exclude";
+  text: string;
+}
+
+function ToolFieldsEditor({
+  mcpName,
+  tools,
+}: {
+  mcpName: string;
+  tools: ToolInfo[];
+}) {
+  const updateMcp = useUpdateMcp();
+  const { data: config, isLoading } = useQuery({
+    queryKey: ["mcp-config", mcpName],
+    queryFn: () => api.mcpConfig(mcpName),
+  });
+  const [drafts, setDrafts] = useState<Record<string, FieldDraft>>({});
+
+  useEffect(() => {
+    if (!config) return;
+    const initial: Record<string, FieldDraft> = {};
+    for (const tool of tools) {
+      const sel = config.fieldSelection?.[tool.name];
+      initial[tool.name] = {
+        mode: sel?.mode ?? "include",
+        text: sel?.fields.join("\n") ?? "",
+      };
+    }
+    setDrafts(initial);
+  }, [config, tools]);
+
+  const setDraft = (name: string, patch: Partial<FieldDraft>) =>
+    setDrafts((d) => ({ ...d, [name]: { ...d[name], ...patch } }));
+
+  const handleSave = async () => {
+    if (!config) return;
+    const fieldSelection: Record<string, FieldSelection> = {};
+    for (const [name, draft] of Object.entries(drafts)) {
+      const fields = draft.text
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+      if (fields.length) fieldSelection[name] = { mode: draft.mode, fields };
+    }
+    try {
+      await updateMcp.mutateAsync({
+        name: mcpName,
+        cfg: {
+          ...config,
+          fieldSelection:
+            Object.keys(fieldSelection).length > 0 ? fieldSelection : undefined,
+        },
+      });
+      toast.success(`Saved field selection for "${mcpName}"`);
+    } catch {
+      toast.error(`Failed to save field selection for "${mcpName}"`);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-morph-muted" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-morph-muted">
+        Project each tool&apos;s JSON response before TOON conversion. Use
+        dot-notation for nested/array paths (e.g. <code>tasks.id</code>). One
+        path per line. Empty = no projection.
+      </p>
+      {tools.map((tool) => (
+        <div
+          key={tool.name}
+          className="rounded-md border border-morph-border p-3 space-y-2"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <code className="text-sm font-semibold">{tool.name}</code>
+            <Select
+              className="w-32"
+              value={drafts[tool.name]?.mode ?? "include"}
+              onChange={(e) =>
+                setDraft(tool.name, {
+                  mode: e.target.value as "include" | "exclude",
+                })
+              }
+              options={[
+                { value: "include", label: "Include" },
+                { value: "exclude", label: "Exclude" },
+              ]}
+            />
+          </div>
+          <textarea
+            className="flex min-h-[60px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-xs font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
+            value={drafts[tool.name]?.text ?? ""}
+            onChange={(e) => setDraft(tool.name, { text: e.target.value })}
+            placeholder={"id\nname\ndata.items.title"}
+          />
+        </div>
+      ))}
+      <Button
+        onClick={() => void handleSave()}
+        disabled={updateMcp.isPending}
+      >
+        {updateMcp.isPending ? "Saving..." : "Save field selection"}
+      </Button>
+    </div>
+  );
+}
+
 export function MCPToolsModal({
   mcp,
   open,
@@ -106,6 +226,7 @@ export function MCPToolsModal({
             <TabsList className="self-start">
               <TabsTrigger value="toon">TOON</TabsTrigger>
               <TabsTrigger value="json">JSON</TabsTrigger>
+              <TabsTrigger value="fields">Fields</TabsTrigger>
             </TabsList>
             <TabsContent
               value="toon"
@@ -122,6 +243,12 @@ export function MCPToolsModal({
               {tools.map((tool) => (
                 <ToolCardJson key={tool.name} tool={tool} />
               ))}
+            </TabsContent>
+            <TabsContent
+              value="fields"
+              className="flex-1 overflow-y-auto pr-1"
+            >
+              {mcp && <ToolFieldsEditor mcpName={mcp.name} tools={tools} />}
             </TabsContent>
           </Tabs>
         )}

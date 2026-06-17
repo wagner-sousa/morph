@@ -52,6 +52,19 @@ export const TransportSchema = z.discriminatedUnion("type", [
   SseTransportSchema,
 ]);
 
+/**
+ * Per-tool projection applied to a tool's JSON response before TOON conversion.
+ * `include` keeps only the listed paths; `exclude` removes them. Paths use
+ * dot-notation and traverse arrays element-wise (e.g. "tasks.id").
+ */
+export const FieldSelectionSchema = z.object({
+  mode: z.enum(["include", "exclude"]),
+  fields: z.array(z.string().min(1)).min(1),
+});
+
+/** Map of backend tool name → its field selection. */
+export const FieldSelectionMapSchema = z.record(FieldSelectionSchema);
+
 /** Internal MCP server representation (post-merge, with explicit transport). */
 export const MCPDefinitionSchema = z.object({
   name: NameSchema,
@@ -60,6 +73,8 @@ export const MCPDefinitionSchema = z.object({
   labels: z.record(z.string()).optional(),
   /** Rename a backend tool as exposed to the agent: { "read_file": "fs_read" }. */
   aliases: z.record(z.string()).optional(),
+  /** Per-tool response field projection (keyed by backend tool name). */
+  fieldSelection: FieldSelectionMapSchema.optional(),
   transport: TransportSchema,
 });
 
@@ -85,6 +100,7 @@ export const McpServerEntrySchema = z
     description: z.string().optional(),
     labels: z.record(z.string()).optional(),
     aliases: z.record(z.string()).optional(),
+    fieldSelection: FieldSelectionMapSchema.optional(),
   })
   .superRefine((entry, ctx) => {
     const type = entry.type ?? "stdio";
@@ -201,6 +217,7 @@ export function fromMcpDefinitions(
     if (def.description) entry.description = def.description;
     if (def.labels) entry.labels = def.labels;
     if (def.aliases) entry.aliases = def.aliases;
+    if (def.fieldSelection) entry.fieldSelection = def.fieldSelection;
     const t = def.transport;
     if (t.type === "http") {
       entry.type = "http";
@@ -237,6 +254,7 @@ export function toMcpDefinitions(
       description: entry.description,
       labels: entry.labels,
       aliases: entry.aliases,
+      fieldSelection: entry.fieldSelection,
     };
     if (type === "http") {
       return {

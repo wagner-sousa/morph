@@ -177,6 +177,10 @@ export class MCPClientRegistry extends EventEmitter {
     return [...this.entries.values()].map((e) => e.definition);
   }
 
+  getDefinition(name: string): MCPDefinition | undefined {
+    return this.entries.get(name)?.definition;
+  }
+
   getStatusSummary(): MCPStatusSummary[] {
     return [...this.entries.values()].map((entry) => {
       const { definition, client } = entry;
