@@ -419,54 +419,58 @@ export function Mcps() {
       ...(data.labels ? { labels: parseLines(data.labels) } : {}),
       ...(data.aliases ? { aliases: parseLines(data.aliases) } : {}),
     };
+    // Open the popup synchronously, while we still hold the user's gesture
+    // (transient activation). Browsers block window.open from setTimeout/async
+    // callbacks. We navigate it to the OAuth URL once known, or close it.
+    const popup = window.open("about:blank", "oauth", "width=600,height=700");
+
     try {
       await addMcp.mutateAsync(payload);
       toast.success(`Added MCP "${name}"`);
     } catch {
       toast.error(`Failed to add MCP "${name}"`);
+      popup?.close();
       return;
     }
+
+    const oauthStatus = await api.oauthStatus(name).catch(() => null);
+    if (!oauthStatus?.oauthNeeded || !oauthStatus.oauthUrl) {
+      popup?.close();
+      return;
+    }
+
+    if (!popup) {
+      toast.error(
+        `Popup blocked. Allow popups for this site, then edit "${name}" to authorize.`,
+      );
+      return;
+    }
+
+    popup.location.href = oauthStatus.oauthUrl;
+    setOauthAdding(name);
     await new Promise<void>((resolve) => {
-      setTimeout(() => {
+      const timer = setInterval(() => {
         void (async () => {
-          const oauthStatus = await api.oauthStatus(name).catch(() => null);
-          if (oauthStatus?.oauthNeeded && oauthStatus.oauthUrl) {
-            setOauthAdding(name);
-            const popup = window.open(
-              oauthStatus.oauthUrl,
-              "oauth",
-              "width=600,height=700",
-            );
-            if (popup) {
-              const timer = setInterval(() => {
-                void (async () => {
-                  if (popup.closed) {
-                    clearInterval(timer);
-                    setOauthAdding(null);
-                    resolve();
-                    return;
-                  }
-                  const status = await api.oauthStatus(name).catch(() => null);
-                  if (status?.authorized || status?.oauthHasToken) {
-                    clearInterval(timer);
-                    popup.close();
-                    setOauthAdding(null);
-                    resolve();
-                  }
-                })();
-              }, 1000);
-              setTimeout(() => {
-                clearInterval(timer);
-                setOauthAdding(null);
-                resolve();
-              }, 120000);
-              return;
-            }
+          if (popup.closed) {
+            clearInterval(timer);
             setOauthAdding(null);
+            resolve();
+            return;
           }
-          resolve();
+          const status = await api.oauthStatus(name).catch(() => null);
+          if (status?.authorized || status?.oauthHasToken) {
+            clearInterval(timer);
+            popup.close();
+            setOauthAdding(null);
+            resolve();
+          }
         })();
       }, 1000);
+      setTimeout(() => {
+        clearInterval(timer);
+        setOauthAdding(null);
+        resolve();
+      }, 120000);
     });
   };
 
