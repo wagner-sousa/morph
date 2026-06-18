@@ -251,7 +251,7 @@ function ToolFieldsEditor({
           )}
         />
       </div>
-      <div className="border-t border-morph-border pt-3 mt-3">
+      <div className="border-t border-morph-border pt-3 mt-3 shrink-0">
         <Button onClick={() => void handleSave()} disabled={updateMcp.isPending}>
           {updateMcp.isPending ? "Saving..." : "Save field selection"}
         </Button>
@@ -277,8 +277,8 @@ export function MCPToolsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Tools — {mcp?.name}</DialogTitle>
         </DialogHeader>
         {isLoading ? (
@@ -289,7 +289,7 @@ export function MCPToolsModal({
           <p className="text-sm text-morph-muted">No tools available.</p>
         ) : (
           <Tabs defaultValue="toon" className="flex-1 flex flex-col min-h-0">
-            <TabsList className="self-start">
+            <TabsList className="self-start shrink-0">
               <TabsTrigger value="toon">TOON</TabsTrigger>
               <TabsTrigger value="json">JSON</TabsTrigger>
               <TabsTrigger value="fields">Fields</TabsTrigger>
