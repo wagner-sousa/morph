@@ -150,6 +150,10 @@ export class WebServer {
 
     app.get("/api/calls/totalizers", () => hub.store.getTotalizers());
 
+    app.get("/api/calls/tokens-by-type", () => hub.store.getTokensByType());
+
+    app.get("/api/calls/by-tool", () => hub.store.getCallStatsByTool());
+
     app.get("/api/logs", (req) => {
       const q = req.query as Record<string, string | undefined>;
       return hub.logs.query({

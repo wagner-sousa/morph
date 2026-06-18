@@ -86,8 +86,10 @@ export interface LogEntry {
   originalTokens?: number;
   toonTokens?: number;
   durationMs?: number;
+  morphOverheadMs?: number;
   tokensSaved?: number;
   outputFormat?: "json" | "toon";
+  contentType?: "json" | "markdown" | "text";
   createdAt: string;
 }
 

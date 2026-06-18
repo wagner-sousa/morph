@@ -17,6 +17,7 @@ import { OAuthStore } from "./mcp-client/oauth-store.js";
 import { Router } from "./router/index.js";
 import { ToonConverter } from "./toon/converter.js";
 import { estimateTokens } from "./toon/stats.js";
+import { detectContentType } from "./content/detect.js";
 import { applyFieldSelection } from "./projection/project.js";
 import { HealthChecker } from "./health/checker.js";
 import { getVersionInfo } from "./utils/version.js";
@@ -251,12 +252,17 @@ export class Hub extends EventEmitter {
     let originalTokens: number | undefined;
     let toonTokens: number | undefined;
     let outputFormat: "json" | "toon" = "json";
+    let contentType: "json" | "markdown" | "text" | undefined;
+    let morphOverheadMs: number | undefined;
     try {
       const raw = await client.callTool(originalName, args);
+      // Mark the boundary between upstream MCP time and MORPH processing time.
+      const upstreamDone = performance.now();
       rawOutput =
         raw.content[0]?.type === "text"
           ? raw.content[0].text
           : JSON.stringify(raw);
+      contentType = detectContentType(rawOutput);
 
       // Per-tool field projection, applied to the JSON the backend returned
       // BEFORE TOON conversion. The token index below still counts the
@@ -289,19 +295,20 @@ export class Hub extends EventEmitter {
           ? conversion.result.content[0].text
           : JSON.stringify(conversion.result);
 
-      // Index = tokens of the JSON we received vs the TOON we emit. Only
-      // recorded when something actually changed (projection or conversion),
-      // so plain passthrough calls keep their previous (unset) accounting.
-      if (selection || conversion.savings) {
-        originalTokens = estimateTokens(rawOutput);
-        toonTokens = estimateTokens(conversionOutput ?? "");
-        tokensSaved = originalTokens - toonTokens;
-        savingsPercent =
-          originalTokens === 0
-            ? 0
-            : Math.round(((originalTokens - toonTokens) / originalTokens) * 1000) /
-              10;
-      }
+      // Index = tokens of the JSON we received vs what we emit. Always recorded
+      // so dashboard token totals cover every call (including plain passthrough,
+      // where savings are simply zero).
+      originalTokens = estimateTokens(rawOutput);
+      toonTokens = estimateTokens(conversionOutput ?? "");
+      tokensSaved = originalTokens - toonTokens;
+      savingsPercent =
+        originalTokens === 0
+          ? 0
+          : Math.round(((originalTokens - toonTokens) / originalTokens) * 1000) /
+            10;
+      // Time spent inside MORPH (projection + conversion + detection), excluding
+      // the upstream MCP call measured above.
+      morphOverheadMs = Math.round(performance.now() - upstreamDone);
       return conversion.result;
     } catch (err) {
       success = false;
@@ -333,8 +340,10 @@ export class Hub extends EventEmitter {
         originalTokens,
         toonTokens,
         durationMs,
+        morphOverheadMs: success ? morphOverheadMs : undefined,
         tokensSaved,
         outputFormat,
+        contentType: success ? contentType : undefined,
       });
       this.logs.append({
         id: logId,
@@ -350,8 +359,10 @@ export class Hub extends EventEmitter {
         originalTokens,
         toonTokens,
         durationMs,
+        morphOverheadMs: success ? morphOverheadMs : undefined,
         tokensSaved,
         outputFormat,
+        contentType: success ? contentType : undefined,
       });
       this.emit("tool:called", name, mcpName, durationMs);
     }

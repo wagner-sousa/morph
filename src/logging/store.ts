@@ -25,9 +25,13 @@ export interface LogEntry {
   originalTokens?: number;
   toonTokens?: number;
   durationMs?: number;
+  /** Time spent in MORPH (projection + conversion + detection), excluding the upstream MCP call. */
+  morphOverheadMs?: number;
   tokensSaved?: number;
   /** Format actually emitted for this call: "json" | "toon". */
   outputFormat?: "json" | "toon";
+  /** Detected type of the raw upstream response: "json" | "markdown" | "text". */
+  contentType?: "json" | "markdown" | "text";
   createdAt: string; // ISO 8601
 }
 
@@ -64,11 +68,15 @@ export class LogStore extends EventEmitter {
       inputJson: entry.inputJson,
       outputText: entry.outputText,
       rawOutput: entry.rawOutput,
+      mappedOutput: entry.mappedOutput,
+      selectedFields: entry.selectedFields,
       originalTokens: entry.originalTokens,
       toonTokens: entry.toonTokens,
       durationMs: entry.durationMs,
+      morphOverheadMs: entry.morphOverheadMs,
       tokensSaved: entry.tokensSaved,
       outputFormat: entry.outputFormat,
+      contentType: entry.contentType,
     };
     this.buffer.push(full);
     if (this.buffer.length > this.capacity) this.buffer.shift();

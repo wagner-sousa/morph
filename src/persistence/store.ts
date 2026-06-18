@@ -95,6 +95,16 @@ export class Store {
     } catch {
       /* column exists */
     }
+    try {
+      this.db.exec(`ALTER TABLE logs ADD COLUMN content_type TEXT`);
+    } catch {
+      /* column exists */
+    }
+    try {
+      this.db.exec(`ALTER TABLE logs ADD COLUMN morph_overhead_ms INTEGER`);
+    } catch {
+      /* column exists */
+    }
   }
 
   appendLog(
@@ -103,8 +113,8 @@ export class Store {
   ): number {
     const info = this.db
       .prepare(
-        `INSERT INTO logs (mcp_name, tool_name, level, message, input_json, output_text, raw_output, mapped_output, selected_fields, original_tokens, toon_tokens, duration_ms, tokens_saved, output_format, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`,
+        `INSERT INTO logs (mcp_name, tool_name, level, message, input_json, output_text, raw_output, mapped_output, selected_fields, original_tokens, toon_tokens, duration_ms, morph_overhead_ms, tokens_saved, output_format, content_type, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`,
       )
       .run(
         entry.mcpName,
@@ -119,8 +129,10 @@ export class Store {
         entry.originalTokens ?? null,
         entry.toonTokens ?? null,
         entry.durationMs ?? null,
+        entry.morphOverheadMs ?? null,
         entry.tokensSaved ?? null,
         entry.outputFormat ?? "json",
+        entry.contentType ?? null,
         entry.createdAt ?? null,
       );
     return Number(info.lastInsertRowid);
@@ -164,9 +176,11 @@ export class Store {
       originalTokens: (r.original_tokens as number | null) ?? undefined,
       toonTokens: (r.toon_tokens as number | null) ?? undefined,
       durationMs: (r.duration_ms as number | null) ?? undefined,
+      morphOverheadMs: (r.morph_overhead_ms as number | null) ?? undefined,
       tokensSaved: (r.tokens_saved as number | null) ?? undefined,
       outputFormat:
         (r.output_format as LogEntry["outputFormat"] | null) ?? undefined,
+      contentType: (r.content_type as LogEntry["contentType"] | null) ?? undefined,
       createdAt: r.created_at as string,
     }));
   }
@@ -236,9 +250,12 @@ export class Store {
       originalTokens: (row.original_tokens as number | null) ?? undefined,
       toonTokens: (row.toon_tokens as number | null) ?? undefined,
       durationMs: (row.duration_ms as number | null) ?? undefined,
+      morphOverheadMs: (row.morph_overhead_ms as number | null) ?? undefined,
       tokensSaved: (row.tokens_saved as number | null) ?? undefined,
       outputFormat:
         (row.output_format as LogEntry["outputFormat"] | null) ?? undefined,
+      contentType:
+        (row.content_type as LogEntry["contentType"] | null) ?? undefined,
       createdAt: row.created_at as string,
     };
   }
@@ -285,6 +302,55 @@ export class Store {
       tokensSaved: number;
       avgPercent: number;
     };
+  }
+
+  /**
+   * Emitted tokens grouped by the unified return type: "toon" when conversion
+   * happened, otherwise the detected content type (json/markdown/text). Tokens
+   * are the ones actually emitted to the agent (toon_tokens for toon, else
+   * original_tokens).
+   */
+  getTokensByType(): Array<{ type: string; tokens: number; calls: number }> {
+    return this.db
+      .prepare(
+        `SELECT
+           CASE WHEN output_format = 'toon' THEN 'toon'
+                ELSE COALESCE(content_type, 'json') END AS type,
+           COALESCE(SUM(CASE WHEN output_format = 'toon'
+                             THEN toon_tokens ELSE original_tokens END), 0) AS tokens,
+           COUNT(*) AS calls
+         FROM logs
+         GROUP BY type
+         ORDER BY tokens DESC`,
+      )
+      .all() as Array<{ type: string; tokens: number; calls: number }>;
+  }
+
+  /** Per MCP+tool aggregation: calls, tokens received and tokens saved. */
+  getCallStatsByTool(): Array<{
+    mcp: string;
+    tool: string;
+    calls: number;
+    tokensIn: number;
+    tokensSaved: number;
+  }> {
+    return this.db
+      .prepare(
+        `SELECT mcp_name AS mcp, tool_name AS tool,
+                COUNT(*) AS calls,
+                COALESCE(SUM(original_tokens), 0) AS tokensIn,
+                COALESCE(SUM(tokens_saved), 0) AS tokensSaved
+         FROM logs
+         GROUP BY mcp_name, tool_name
+         ORDER BY calls DESC`,
+      )
+      .all() as Array<{
+      mcp: string;
+      tool: string;
+      calls: number;
+      tokensIn: number;
+      tokensSaved: number;
+    }>;
   }
 
   close(): void {
