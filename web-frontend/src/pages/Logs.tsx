@@ -8,9 +8,12 @@ export function Logs() {
   const { data: logs, isLoading } = useLogs(200);
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
+  const [formatFilter, setFormatFilter] = useState("all");
 
   const filtered = (logs ?? []).filter((l) => {
     if (levelFilter !== "all" && l.level !== levelFilter) return false;
+    if (formatFilter !== "all" && (l.outputFormat ?? "json") !== formatFilter)
+      return false;
     if (
       search &&
       !l.toolName.toLowerCase().includes(search.toLowerCase()) &&
@@ -43,6 +46,18 @@ export function Logs() {
             { value: "info", label: "Info" },
             { value: "warn", label: "Warn" },
             { value: "error", label: "Error" },
+          ]}
+          className="w-36"
+        />
+        <Select
+          value={formatFilter}
+          onChange={(e) => {
+            setFormatFilter(e.target.value);
+          }}
+          options={[
+            { value: "all", label: "All Formats" },
+            { value: "json", label: "JSON" },
+            { value: "toon", label: "TOON" },
           ]}
           className="w-36"
         />

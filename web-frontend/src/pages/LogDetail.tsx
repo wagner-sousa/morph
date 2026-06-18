@@ -149,12 +149,22 @@ export function LogDetail() {
           </div>
         )}
         <div>
-          <h2 className="mb-2 text-lg font-semibold">
-            {selection ? "3. " : "2. "}TOON{" "}
-            <span className="text-sm font-normal text-morph-muted">
-              (sa\u00edda para o agente)
-            </span>
+          <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold">
+            {selection ? "3. " : "2. "}Sa\u00edda para o agente{" "}
+            <Badge
+              variant={
+                data.outputFormat === "toon" ? "success" : "secondary"
+              }
+            >
+              {(data.outputFormat ?? "json").toUpperCase()}
+            </Badge>
           </h2>
+          {data.outputFormat !== "toon" && (
+            <p className="mb-2 text-sm text-morph-muted">
+              TOON n\u00e3o aplicado \u2014 o JSON foi mantido por ser menor ou por
+              os dados n\u00e3o serem tabulares.
+            </p>
+          )}
           <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-morph-bg-alt p-3 font-mono text-xs">
             {data.outputText ?? "\u2014"}
           </pre>

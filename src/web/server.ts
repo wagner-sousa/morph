@@ -157,6 +157,7 @@ export class WebServer {
         level: q.level as never,
         since: q.since,
         limit: q.limit ? Number(q.limit) : undefined,
+        outputFormat: q.outputFormat as "json" | "toon" | undefined,
       });
     });
 

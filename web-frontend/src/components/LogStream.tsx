@@ -27,6 +27,9 @@ const levelVariant = (lvl: string) => {
   }
 };
 
+const formatVariant = (fmt?: string) =>
+  fmt === "toon" ? ("success" as const) : ("secondary" as const);
+
 export function LogStream({ initial }: LogStreamProps) {
   const navigate = useNavigate();
   const [logs, setLogs] = useState<LogEntry[]>(initial.slice(0, 50));
@@ -51,6 +54,7 @@ export function LogStream({ initial }: LogStreamProps) {
             <TableHead>MCP</TableHead>
             <TableHead>Tool</TableHead>
             <TableHead>Level</TableHead>
+            <TableHead>Formato</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Saved</TableHead>
           </TableRow>
@@ -76,6 +80,11 @@ export function LogStream({ initial }: LogStreamProps) {
                 <Badge variant={levelVariant(l.level)}>{l.level}</Badge>
               </TableCell>
               <TableCell>
+                <Badge variant={formatVariant(l.outputFormat)}>
+                  {(l.outputFormat ?? "json").toUpperCase()}
+                </Badge>
+              </TableCell>
+              <TableCell>
                 {l.durationMs != null ? `${String(l.durationMs)}ms` : "—"}
               </TableCell>
               <TableCell>
@@ -85,7 +94,7 @@ export function LogStream({ initial }: LogStreamProps) {
           ))}
           {logs.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-morph-muted">
+              <TableCell colSpan={7} className="text-center text-morph-muted">
                 No calls yet.
               </TableCell>
             </TableRow>

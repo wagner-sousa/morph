@@ -86,6 +86,7 @@ export interface LogEntry {
   toonTokens?: number;
   durationMs?: number;
   tokensSaved?: number;
+  outputFormat?: "json" | "toon";
   createdAt: string;
 }
 
@@ -115,7 +116,12 @@ export const api = {
   tools: (name: string) =>
     fetch<Record<string, unknown>[]>(`/mcps/${encodeURIComponent(name)}/tools`),
   stats: () => fetch<Stats>("/stats"),
-  logs: (limit = 50) => fetch<LogEntry[]>(`/logs?limit=${String(limit)}`),
+  logs: (limit = 50, outputFormat?: "json" | "toon") =>
+    fetch<LogEntry[]>(
+      `/logs?limit=${String(limit)}${
+        outputFormat ? `&outputFormat=${outputFormat}` : ""
+      }`,
+    ),
   log: (id: number) => fetch<LogEntry>(`/logs/${String(id)}`),
   version: () => fetch<VersionInfo>("/version"),
   config: () => fetch<{ mcpServers: MCPConfig[] }>("/config"),
