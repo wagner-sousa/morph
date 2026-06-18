@@ -22,6 +22,7 @@ import { getVersionInfo } from "../utils/version.js";
 import { MorphError } from "../utils/errors.js";
 import { registerOAuthRoutes } from "./oauth-routes.js";
 import { importConfig } from "../import/importer.js";
+import { fromMcpDefinitions } from "../config/schema.js";
 import type { Hub } from "../hub.js";
 import type { MorphMCPServer } from "../mcp-server/server.js";
 
@@ -175,6 +176,12 @@ export class WebServer {
     });
 
     app.get("/api/config", () => hub.getConfig());
+
+    // Client-facing .mcp.json (what the user pastes into their IDE), NOT the
+    // internal morph config: just the mcpServers map in standard form.
+    app.get("/api/config/mcp.json", () => ({
+      mcpServers: fromMcpDefinitions(hub.getConfig().mcpServers),
+    }));
 
     app.post("/api/mcp/:name", async (req, reply) => {
       const { name } = req.params as { name: string };

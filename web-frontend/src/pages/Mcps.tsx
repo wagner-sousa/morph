@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus } from "lucide-react";
+import { Download, Loader2, Plus } from "lucide-react";
 import {
   api,
   type MCPConfig,
@@ -573,14 +573,26 @@ export function Mcps() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">MCP Servers</h1>
-        <Button
-          onClick={() => {
-            setEditingConfig(null);
-            setDialogOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4" /> Add MCP
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              void api.downloadMcpJson().catch(() => {
+                toast.error("Failed to download .mcp.json");
+              });
+            }}
+          >
+            <Download className="h-4 w-4" /> Download .mcp.json
+          </Button>
+          <Button
+            onClick={() => {
+              setEditingConfig(null);
+              setDialogOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" /> Add MCP
+          </Button>
+        </div>
       </div>
 
       <MCPFormDialog

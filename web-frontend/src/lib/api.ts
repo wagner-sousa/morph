@@ -134,6 +134,19 @@ export const api = {
   },
   updateConfig: (cfg: Record<string, unknown>) =>
     fetch<unknown>("/config", { method: "PUT", body: cfg }),
+  /** Download the client .mcp.json (for pasting into an IDE). */
+  downloadMcpJson: async () => {
+    const data = await fetch<Record<string, unknown>>("/config/mcp.json");
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = ".mcp.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  },
   oauthStatus: (name: string) =>
     fetch<OAuthStatus>(`/mcps/${encodeURIComponent(name)}/oauth/status`),
   oauthStart: (name: string) =>
