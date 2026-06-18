@@ -1,5 +1,6 @@
 import { useStats } from "../hooks/useStats";
 import { TOONStats } from "../components/TOONStats";
+import { OutputFormatStats } from "../components/OutputFormatStats";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import {
   Card,
@@ -30,6 +31,8 @@ export function Stats() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <TOONStats stats={stats} />
+
+        <OutputFormatStats stats={stats} />
 
         <Card>
           <CardHeader>

@@ -69,6 +69,7 @@ export interface Stats {
   totalTokensSaved: number;
   avgSavingsPercent: number;
   byMcp: Record<string, { calls: number; tokensSaved: number }>;
+  byOutputFormat?: { json: number; toon: number };
 }
 
 export interface LogEntry {

@@ -99,6 +99,35 @@ describe("Metrics", () => {
     expect(snap.byMcp.fs.tokensSaved).toBe(50);
   });
 
+  it("tallies calls by output format", () => {
+    metrics.record({
+      mcpName: "fs",
+      toolName: "read",
+      durationMs: 1,
+      tokensSaved: 5,
+      success: true,
+      outputFormat: "toon",
+    });
+    metrics.record({
+      mcpName: "fs",
+      toolName: "list",
+      durationMs: 1,
+      tokensSaved: 0,
+      success: true,
+      outputFormat: "json",
+    });
+    metrics.record({
+      mcpName: "fs",
+      toolName: "stat",
+      durationMs: 1,
+      tokensSaved: 0,
+      success: true,
+      outputFormat: "json",
+    });
+    const snap = metrics.snapshot();
+    expect(snap.byOutputFormat).toEqual({ json: 2, toon: 1 });
+  });
+
   it("calculates avgSavingsPercent", () => {
     metrics.record(
       {

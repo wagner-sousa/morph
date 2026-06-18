@@ -22,6 +22,7 @@ export interface AggregatedStats {
   totalTokensSaved: number;
   avgSavingsPercent: number;
   byMcp: Record<string, { calls: number; tokensSaved: number }>;
+  byOutputFormat: { json: number; toon: number };
 }
 
 export class Metrics extends EventEmitter {
@@ -64,6 +65,7 @@ export class Metrics extends EventEmitter {
           : Math.round((this.savingsPercentSum / this.convertedCalls) * 10) /
             10,
       byMcp: Object.fromEntries(this.byMcp),
+      byOutputFormat: { ...this.byOutputFormat },
     };
   }
 }
