@@ -140,7 +140,7 @@ export function LogDetail() {
             <h2 className="mb-2 text-lg font-semibold">
               2. Mapeado{" "}
               <span className="text-sm font-normal text-morph-muted">
-                (ap\u00f3s sele\u00e7\u00e3o de campos)
+                (após seleção de campos)
               </span>
             </h2>
             <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-morph-bg-alt p-3 font-mono text-xs">
@@ -150,7 +150,7 @@ export function LogDetail() {
         )}
         <div>
           <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold">
-            {selection ? "3. " : "2. "}Sa\u00edda para o agente{" "}
+            {selection ? "3. " : "2. "}Saída para o agente{" "}
             <Badge
               variant={
                 data.outputFormat === "toon" ? "success" : "secondary"
@@ -161,8 +161,8 @@ export function LogDetail() {
           </h2>
           {data.outputFormat !== "toon" && (
             <p className="mb-2 text-sm text-morph-muted">
-              TOON n\u00e3o aplicado \u2014 o JSON foi mantido por ser menor ou por
-              os dados n\u00e3o serem tabulares.
+              TOON não aplicado — o JSON foi mantido por ser menor ou por
+              os dados não serem tabulares.
             </p>
           )}
           <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-morph-bg-alt p-3 font-mono text-xs">
