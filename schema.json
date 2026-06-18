@@ -16,7 +16,12 @@
             },
             "logLevel": {
               "type": "string",
-              "enum": ["debug", "info", "warn", "error"],
+              "enum": [
+                "debug",
+                "info",
+                "warn",
+                "error"
+              ],
               "default": "info"
             },
             "allowConflicts": {
@@ -40,7 +45,11 @@
             },
             "delimiter": {
               "type": "string",
-              "enum": ["comma", "tab", "pipe"],
+              "enum": [
+                "comma",
+                "tab",
+                "pipe"
+              ],
               "default": "comma"
             },
             "indent": {
@@ -58,6 +67,15 @@
               "type": "integer",
               "minimum": 0,
               "default": 100
+            },
+            "outputMode": {
+              "type": "string",
+              "enum": [
+                "dynamic",
+                "json",
+                "toon"
+              ],
+              "default": "dynamic"
             }
           },
           "additionalProperties": false,
@@ -94,7 +112,10 @@
                   "type": "string"
                 }
               },
-              "required": ["username", "passwordHash"],
+              "required": [
+                "username",
+                "passwordHash"
+              ],
               "additionalProperties": false
             }
           },

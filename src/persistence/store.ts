@@ -88,6 +88,13 @@ export class Store {
     } catch {
       /* column exists */
     }
+    try {
+      this.db.exec(
+        `ALTER TABLE logs ADD COLUMN output_format TEXT DEFAULT 'json'`,
+      );
+    } catch {
+      /* column exists */
+    }
   }
 
   appendLog(
@@ -96,8 +103,8 @@ export class Store {
   ): number {
     const info = this.db
       .prepare(
-        `INSERT INTO logs (mcp_name, tool_name, level, message, input_json, output_text, raw_output, mapped_output, selected_fields, original_tokens, toon_tokens, duration_ms, tokens_saved, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`,
+        `INSERT INTO logs (mcp_name, tool_name, level, message, input_json, output_text, raw_output, mapped_output, selected_fields, original_tokens, toon_tokens, duration_ms, tokens_saved, output_format, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`,
       )
       .run(
         entry.mcpName,
@@ -113,6 +120,7 @@ export class Store {
         entry.toonTokens ?? null,
         entry.durationMs ?? null,
         entry.tokensSaved ?? null,
+        entry.outputFormat ?? "json",
         entry.createdAt ?? null,
       );
     return Number(info.lastInsertRowid);
@@ -132,6 +140,10 @@ export class Store {
     if (filter.since) {
       clauses.push("created_at >= ?");
       params.push(filter.since);
+    }
+    if (filter.outputFormat) {
+      clauses.push("output_format = ?");
+      params.push(filter.outputFormat);
     }
     const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
     const limit = filter.limit ?? 200;
@@ -153,6 +165,8 @@ export class Store {
       toonTokens: (r.toon_tokens as number | null) ?? undefined,
       durationMs: (r.duration_ms as number | null) ?? undefined,
       tokensSaved: (r.tokens_saved as number | null) ?? undefined,
+      outputFormat:
+        (r.output_format as LogEntry["outputFormat"] | null) ?? undefined,
       createdAt: r.created_at as string,
     }));
   }
@@ -223,6 +237,8 @@ export class Store {
       toonTokens: (row.toon_tokens as number | null) ?? undefined,
       durationMs: (row.duration_ms as number | null) ?? undefined,
       tokensSaved: (row.tokens_saved as number | null) ?? undefined,
+      outputFormat:
+        (row.output_format as LogEntry["outputFormat"] | null) ?? undefined,
       createdAt: row.created_at as string,
     };
   }

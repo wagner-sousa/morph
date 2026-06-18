@@ -250,6 +250,7 @@ export class Hub extends EventEmitter {
     let selectedFields: string | undefined;
     let originalTokens: number | undefined;
     let toonTokens: number | undefined;
+    let outputFormat: "json" | "toon" = "json";
     try {
       const raw = await client.callTool(originalName, args);
       rawOutput =
@@ -271,7 +272,18 @@ export class Hub extends EventEmitter {
             : JSON.stringify(projected);
       }
 
-      const conversion = this.converter.convertResult(projected);
+      // Resolve the output mode: a per-MCP override wins over the global one.
+      const mode =
+        this.registry.getDefinition(mcpName)?.outputMode ??
+        this.config.toon.outputMode ??
+        "dynamic";
+      const conversion =
+        mode === "json"
+          ? { result: projected, converted: false, savings: undefined }
+          : mode === "toon"
+            ? this.converter.convertForced(projected)
+            : this.converter.convertResult(projected);
+      outputFormat = conversion.converted ? "toon" : "json";
       conversionOutput =
         conversion.result.content[0]?.type === "text"
           ? conversion.result.content[0].text
@@ -297,7 +309,14 @@ export class Hub extends EventEmitter {
     } finally {
       const durationMs = Math.round(performance.now() - started);
       this.metrics.record(
-        { mcpName, toolName: name, durationMs, tokensSaved, success },
+        {
+          mcpName,
+          toolName: name,
+          durationMs,
+          tokensSaved,
+          success,
+          outputFormat: success ? outputFormat : undefined,
+        },
         savingsPercent,
       );
       this.store.recordCall(mcpName, name, durationMs, tokensSaved);
@@ -315,6 +334,7 @@ export class Hub extends EventEmitter {
         toonTokens,
         durationMs,
         tokensSaved,
+        outputFormat,
       });
       this.logs.append({
         id: logId,
@@ -331,6 +351,7 @@ export class Hub extends EventEmitter {
         toonTokens,
         durationMs,
         tokensSaved,
+        outputFormat,
       });
       this.emit("tool:called", name, mcpName, durationMs);
     }

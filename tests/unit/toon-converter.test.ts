@@ -54,4 +54,24 @@ describe("ToonConverter", () => {
     const { converted } = converter.convertResult(res);
     expect(converted).toBe(false);
   });
+
+  it("keeps JSON when TOON would be larger (dynamic guard)", () => {
+    const nonUniform = [{ a: 1 }, { b: 2, c: 3 }, { d: "long string here" }];
+    const json = JSON.stringify(nonUniform);
+    const { converted, result } = converter.convertResult(textResult(json));
+    expect(converted).toBe(false);
+    expect((result.content[0] as { text: string }).text).toBe(json);
+  });
+
+  it("convertForced encodes TOON even when larger than JSON", () => {
+    const nonUniform = [{ a: 1 }, { b: 2, c: 3 }, { d: "long string here" }];
+    const json = JSON.stringify(nonUniform);
+    // dynamic keeps JSON...
+    expect(converter.convertResult(textResult(json)).converted).toBe(false);
+    // ...but forced mode converts and round-trips.
+    const { converted, result } = converter.convertForced(textResult(json));
+    expect(converted).toBe(true);
+    const item = result.content[0] as { text: string };
+    expect(converter.decode(item.text)).toEqual(nonUniform);
+  });
 });

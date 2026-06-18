@@ -14,7 +14,11 @@
             "properties": {
               "type": {
                 "type": "string",
-                "enum": ["stdio", "http", "sse"]
+                "enum": [
+                  "stdio",
+                  "http",
+                  "sse"
+                ]
               },
               "command": {
                 "type": "string"
@@ -71,6 +75,42 @@
                 "additionalProperties": {
                   "type": "string"
                 }
+              },
+              "fieldSelection": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "include",
+                        "exclude"
+                      ]
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "minItems": 1
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "fields"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "outputMode": {
+                "type": "string",
+                "enum": [
+                  "dynamic",
+                  "json",
+                  "toon"
+                ]
               }
             },
             "additionalProperties": false

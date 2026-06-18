@@ -144,6 +144,10 @@ export function applyEnvOverrides(
     "MORPH_TOON_THRESHOLD",
     (v) => (next.toon.threshold = envInt("MORPH_TOON_THRESHOLD", v)),
   );
+  set(
+    "MORPH_TOON_OUTPUT_MODE",
+    (v) => (next.toon.outputMode = v as MorphConfig["toon"]["outputMode"]),
+  );
 
   // health.*
   set(

@@ -26,6 +26,8 @@ export interface LogEntry {
   toonTokens?: number;
   durationMs?: number;
   tokensSaved?: number;
+  /** Format actually emitted for this call: "json" | "toon". */
+  outputFormat?: "json" | "toon";
   createdAt: string; // ISO 8601
 }
 
@@ -34,6 +36,7 @@ export interface LogFilter {
   level?: LogLevelName;
   since?: string; // ISO 8601
   limit?: number;
+  outputFormat?: "json" | "toon";
 }
 
 export class LogStore extends EventEmitter {
@@ -65,6 +68,7 @@ export class LogStore extends EventEmitter {
       toonTokens: entry.toonTokens,
       durationMs: entry.durationMs,
       tokensSaved: entry.tokensSaved,
+      outputFormat: entry.outputFormat,
     };
     this.buffer.push(full);
     if (this.buffer.length > this.capacity) this.buffer.shift();
@@ -80,6 +84,8 @@ export class LogStore extends EventEmitter {
       const since = Date.parse(filter.since);
       entries = entries.filter((e) => Date.parse(e.createdAt) >= since);
     }
+    if (filter.outputFormat)
+      entries = entries.filter((e) => e.outputFormat === filter.outputFormat);
     const limit = filter.limit ?? 200;
     return entries.slice(-limit).reverse();
   }

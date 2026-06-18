@@ -84,6 +84,37 @@ describe("Store", () => {
     expect(errors).toHaveLength(1);
   });
 
+  it("persists and filters logs by output_format", () => {
+    store.appendLog({
+      mcpName: "fs",
+      toolName: "read",
+      level: "info",
+      message: "ok",
+      outputFormat: "toon",
+    });
+    store.appendLog({
+      mcpName: "fs",
+      toolName: "list",
+      level: "info",
+      message: "ok",
+      outputFormat: "json",
+    });
+    const toon = store.queryLogs({ outputFormat: "toon" });
+    expect(toon).toHaveLength(1);
+    expect(toon[0].outputFormat).toBe("toon");
+    expect(toon[0].toolName).toBe("read");
+  });
+
+  it("defaults output_format to json when unset", () => {
+    const id = store.appendLog({
+      mcpName: "fs",
+      toolName: "read",
+      level: "info",
+      message: "ok",
+    });
+    expect(store.getLog(id)?.outputFormat).toBe("json");
+  });
+
   it("records and retrieves call stats", () => {
     store.recordCall("fs", "read", 100, 50);
     store.recordCall("fs", "write", 200, 30);

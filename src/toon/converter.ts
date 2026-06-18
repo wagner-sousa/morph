@@ -51,6 +51,19 @@ export class ToonConverter {
    * Returns the (possibly unchanged) result plus aggregate savings.
    */
   convertResult(result: CallToolResult): ConversionResult {
+    return this.convert(result, false);
+  }
+
+  /**
+   * Like {@link convertResult} but forces TOON encoding even when the result is
+   * larger than the original JSON (used by outputMode "toon"). Savings may be
+   * negative in that case.
+   */
+  convertForced(result: CallToolResult): ConversionResult {
+    return this.convert(result, true);
+  }
+
+  private convert(result: CallToolResult, force: boolean): ConversionResult {
     if (!Array.isArray(result.content)) return { result, converted: false };
 
     const totals = { original: 0, toon: 0, converted: 0 };
@@ -66,8 +79,8 @@ export class ToonConverter {
       } catch {
         return item; // never let conversion break a real response
       }
-      // Guard: if TOON ended up larger, keep the original JSON.
-      if (toon.length >= item.text.length) return item;
+      // Guard: if TOON ended up larger, keep the original JSON (unless forced).
+      if (!force && toon.length >= item.text.length) return item;
 
       const savings = estimateSavings(item.text, toon);
       totals.original += savings.originalTokens;

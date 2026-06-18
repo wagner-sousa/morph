@@ -12,6 +12,8 @@ export interface CallRecord {
   durationMs: number;
   tokensSaved: number;
   success: boolean;
+  /** Format actually emitted for this call: "json" | "toon". */
+  outputFormat?: "json" | "toon";
 }
 
 export interface AggregatedStats {
@@ -28,6 +30,7 @@ export class Metrics extends EventEmitter {
   private totalTokensSaved = 0;
   private savingsPercentSum = 0;
   private convertedCalls = 0;
+  private readonly byOutputFormat = { json: 0, toon: 0 };
   private readonly byMcp = new Map<
     string,
     { calls: number; tokensSaved: number }
@@ -41,6 +44,8 @@ export class Metrics extends EventEmitter {
       this.savingsPercentSum += savingsPercent;
       this.convertedCalls++;
     }
+    if (rec.outputFormat === "toon") this.byOutputFormat.toon++;
+    else if (rec.outputFormat === "json") this.byOutputFormat.json++;
     const entry = this.byMcp.get(rec.mcpName) ?? { calls: 0, tokensSaved: 0 };
     entry.calls++;
     entry.tokensSaved += rec.tokensSaved;

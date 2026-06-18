@@ -10,6 +10,7 @@ import type {
   HttpTransportSchema,
   MCPDefinitionSchema,
   MorphConfigSchema,
+  OutputModeSchema,
   SseTransportSchema,
   StdioTransportSchema,
   ToonOptionsSchema,
@@ -24,6 +25,7 @@ export type StdioTransport = z.infer<typeof StdioTransportSchema>;
 export type HttpTransport = z.infer<typeof HttpTransportSchema>;
 export type SseTransport = z.infer<typeof SseTransportSchema>;
 export type ToonOptions = z.infer<typeof ToonOptionsSchema>;
+export type OutputMode = z.infer<typeof OutputModeSchema>;
 export type WebUiConfig = z.infer<typeof WebUiSchema>;
 export type HealthConfig = z.infer<typeof HealthSchema>;
 

@@ -15,6 +15,15 @@ import { z } from "zod";
 export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 export const DELIMITER_NAMES = ["comma", "tab", "pipe"] as const;
 
+/**
+ * Output mode for tool responses:
+ *   - "dynamic": convert to TOON only when it is smaller (current behaviour)
+ *   - "json":    never convert, always return the (projected) JSON
+ *   - "toon":    always convert to TOON, even when larger than JSON
+ */
+export const OUTPUT_MODES = ["dynamic", "json", "toon"] as const;
+export const OutputModeSchema = z.enum(OUTPUT_MODES);
+
 const NameSchema = z
   .string()
   .min(1, "name must not be empty")
@@ -75,6 +84,8 @@ export const MCPDefinitionSchema = z.object({
   aliases: z.record(z.string()).optional(),
   /** Per-tool response field projection (keyed by backend tool name). */
   fieldSelection: FieldSelectionMapSchema.optional(),
+  /** Per-MCP override of the global toon.outputMode. */
+  outputMode: OutputModeSchema.optional(),
   transport: TransportSchema,
 });
 
@@ -101,6 +112,7 @@ export const McpServerEntrySchema = z
     labels: z.record(z.string()).optional(),
     aliases: z.record(z.string()).optional(),
     fieldSelection: FieldSelectionMapSchema.optional(),
+    outputMode: OutputModeSchema.optional(),
   })
   .superRefine((entry, ctx) => {
     const type = entry.type ?? "stdio";
@@ -131,6 +143,7 @@ export const ToonOptionsSchema = z
     indent: z.number().int().min(0).max(8).default(2),
     flattenDepth: z.number().int().min(0).default(4),
     threshold: z.number().int().min(0).default(100),
+    outputMode: OutputModeSchema.default("dynamic"),
   })
   .default({});
 
@@ -218,6 +231,7 @@ export function fromMcpDefinitions(
     if (def.labels) entry.labels = def.labels;
     if (def.aliases) entry.aliases = def.aliases;
     if (def.fieldSelection) entry.fieldSelection = def.fieldSelection;
+    if (def.outputMode) entry.outputMode = def.outputMode;
     const t = def.transport;
     if (t.type === "http") {
       entry.type = "http";
@@ -255,6 +269,7 @@ export function toMcpDefinitions(
       labels: entry.labels,
       aliases: entry.aliases,
       fieldSelection: entry.fieldSelection,
+      outputMode: entry.outputMode,
     };
     if (type === "http") {
       return {
