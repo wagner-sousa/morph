@@ -25,7 +25,7 @@ export function TOONStats({ stats }: { stats: Stats | undefined }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>TOON Savings by MCP</CardTitle>
+        <CardTitle>Tokens Savings by MCP</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold mb-2">

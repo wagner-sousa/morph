@@ -13,7 +13,6 @@ import { Dashboard } from "./pages/Dashboard";
 import { Mcps } from "./pages/Mcps";
 import { Logs } from "./pages/Logs";
 import { LogDetail } from "./pages/LogDetail";
-import { Stats } from "./pages/Stats";
 import { Settings } from "./pages/Settings";
 
 const queryClient = new QueryClient({
@@ -68,12 +67,6 @@ const logDetailRoute = createRoute({
   component: LogDetail,
 });
 
-const statsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/stats",
-  component: Stats,
-});
-
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/settings",
@@ -85,7 +78,6 @@ const routeTree = rootRoute.addChildren([
   mcpsRoute,
   logsRoute,
   logDetailRoute,
-  statsRoute,
   settingsRoute,
 ]);
 

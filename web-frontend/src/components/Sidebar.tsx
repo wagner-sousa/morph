@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Activity, Container, Gauge, Settings, Terminal } from "lucide-react";
+import { Container, Gauge, Settings, Terminal } from "lucide-react";
 import { useWebSocket } from "../lib/ws";
 import { cn } from "../lib/utils";
 
@@ -7,7 +7,6 @@ const nav = [
   { to: "/", label: "Dashboard", icon: Gauge },
   { to: "/mcps", label: "MCPs", icon: Container },
   { to: "/logs", label: "Logs", icon: Terminal },
-  { to: "/stats", label: "Stats", icon: Activity },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

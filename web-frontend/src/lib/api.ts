@@ -155,4 +155,18 @@ export const api = {
       tokensSaved: number;
       avgPercent: number;
     }>("/calls/totalizers"),
+  tokensByType: () =>
+    fetch<Array<{ type: string; tokens: number; calls: number }>>(
+      "/calls/tokens-by-type",
+    ),
+  callsByTool: () =>
+    fetch<
+      Array<{
+        mcp: string;
+        tool: string;
+        calls: number;
+        tokensIn: number;
+        tokensSaved: number;
+      }>
+    >("/calls/by-tool"),
 };

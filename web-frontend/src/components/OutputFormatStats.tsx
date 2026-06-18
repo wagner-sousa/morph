@@ -1,51 +1,45 @@
-import {
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
-import { type Stats } from "../lib/api";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { TYPE_COLORS } from "./TypeBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
-const COLORS: Record<string, string> = {
-  JSON: "#64748b",
-  TOON: "#14b8a6",
-};
-
-export function OutputFormatStats({ stats }: { stats: Stats | undefined }) {
-  const fmt = stats?.byOutputFormat ?? { json: 0, toon: 0 };
-  const data = [
-    { name: "JSON", value: fmt.json },
-    { name: "TOON", value: fmt.toon },
-  ].filter((d) => d.value > 0);
-  const total = fmt.json + fmt.toon;
+/**
+ * Distribution of every output type we produced (toon/json/markdown/text…),
+ * by call count. Fed by /api/calls/tokens-by-type.
+ */
+export function OutputFormatStats({
+  data,
+}: {
+  data: Array<{ type: string; calls: number }> | undefined;
+}) {
+  const slices = (data ?? []).filter((d) => d.calls > 0);
+  const total = slices.reduce((n, d) => n + d.calls, 0);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Output Format (JSON × TOON)</CardTitle>
+        <CardTitle>Output Format</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold mb-2">
-          {fmt.toon.toLocaleString()}{" "}
+          {total.toLocaleString()}{" "}
           <span className="text-sm font-normal text-morph-muted">
-            de {total.toLocaleString()} respostas em TOON
+            respostas em {slices.length} tipo(s)
           </span>
         </div>
-        {data.length > 0 ? (
+        {slices.length > 0 ? (
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
-                data={data}
-                dataKey="value"
-                nameKey="name"
+                data={slices}
+                dataKey="calls"
+                nameKey="type"
                 innerRadius={50}
                 outerRadius={80}
                 paddingAngle={2}
+                label={({ name }) => String(name).toUpperCase()}
               >
-                {data.map((d) => (
-                  <Cell key={d.name} fill={COLORS[d.name]} />
+                {slices.map((d) => (
+                  <Cell key={d.type} fill={TYPE_COLORS[d.type] ?? "#64748b"} />
                 ))}
               </Pie>
               <Tooltip
