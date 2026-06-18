@@ -240,6 +240,12 @@ function MCPFormDialog({
                     {...register("url")}
                     placeholder="http://..."
                   />
+                  <p className="text-xs text-morph-muted">
+                    Running in Docker? <code>localhost</code> refers to the
+                    MORPH container itself. To reach a service published on the
+                    host machine, use <code>host.docker.internal</code> (e.g.{" "}
+                    <code>http://host.docker.internal:9121/mcp</code>).
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="apiKey">API Key</Label>
@@ -275,6 +281,12 @@ function MCPFormDialog({
                     {...register("url")}
                     placeholder="http://..."
                   />
+                  <p className="text-xs text-morph-muted">
+                    Running in Docker? <code>localhost</code> refers to the
+                    MORPH container itself. To reach a service published on the
+                    host machine, use <code>host.docker.internal</code> (e.g.{" "}
+                    <code>http://host.docker.internal:9121/mcp</code>).
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="headers">Headers</Label>
