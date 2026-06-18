@@ -11,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import { useDropzone } from "react-dropzone";
 
 interface FullConfig {
   morph: {
@@ -98,30 +97,6 @@ export function Settings() {
       setSaving(false);
     }
   };
-
-  const onDrop = (files: File[]) => {
-    if (files.length === 0) return;
-    const file = files[0];
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const parsed = JSON.parse(
-          e.target?.result as string,
-        ) as Partial<FullConfig>;
-        setConfig({ ...defaults, ...parsed });
-        setMsg("Configuration imported from file.");
-      } catch {
-        setMsg("Invalid JSON file.");
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: { "application/json": [".json"] },
-    maxFiles: 1,
-  });
 
   if (loading) return <div className="text-morph-muted">Loading...</div>;
 
@@ -341,46 +316,6 @@ export function Settings() {
                 }}
               />
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Raw Configuration</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div
-            {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDragActive ? "border-morph-accent bg-morph-accent/10" : "border-morph-border hover:border-morph-muted"}`}
-          >
-            <input {...getInputProps()} />
-            {isDragActive ? (
-              <p className="text-morph-accent">Drop file here...</p>
-            ) : (
-              <div>
-                <p className="text-morph-muted">Drop a morph.json file here</p>
-                <p className="text-xs text-morph-muted mt-1">
-                  or click to browse
-                </p>
-              </div>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="config-text">Raw JSON</Label>
-            <textarea
-              id="config-text"
-              className="flex min-h-[200px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-sm font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
-              value={JSON.stringify(config, null, 2)}
-              onChange={(e) => {
-                try {
-                  setConfig(JSON.parse(e.target.value) as FullConfig);
-                  setMsg("");
-                } catch {
-                  /* ignore during typing */
-                }
-              }}
-            />
           </div>
         </CardContent>
       </Card>
