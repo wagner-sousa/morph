@@ -63,8 +63,8 @@ export const TransportSchema = z.discriminatedUnion("type", [
 
 /**
  * Per-tool projection applied to a tool's JSON response before TOON conversion.
- * `include` keeps only the listed paths; `exclude` removes them. Paths use
- * dot-notation and traverse arrays element-wise (e.g. "tasks.id").
+ * `include` keeps only the matched nodes; `exclude` removes them. Paths are
+ * written in JSONPath and traverse arrays element-wise (e.g. "$.tasks[*].id").
  */
 export const FieldSelectionSchema = z.object({
   mode: z.enum(["include", "exclude"]),

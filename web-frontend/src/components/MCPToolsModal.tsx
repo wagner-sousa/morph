@@ -150,11 +150,42 @@ function ToolFieldsEditor({
 
   return (
     <div className="flex flex-col min-h-0 flex-1">
-      <p className="text-xs text-morph-muted pb-3">
-        Project each tool&apos;s JSON response before TOON conversion. Use
-        dot-notation for nested/array paths (e.g. <code>tasks.id</code>). One
-        path per line. Empty = no projection.
-      </p>
+      <div className="text-xs text-morph-muted pb-3 space-y-1">
+        <p>
+          Project each tool&apos;s JSON response before TOON conversion. Use{" "}
+          <a
+            href="https://www.rfc-editor.org/rfc/rfc9535.html"
+            target="_blank"
+            rel="noreferrer"
+            className="text-morph-accent underline"
+          >
+            JSONPath
+          </a>{" "}
+          expressions for nested/array paths (e.g.{" "}
+          <code>$.tasks[*].id</code>). One expression per line. Empty = no
+          projection.
+        </p>
+        <p>
+          Help:{" "}
+          <a
+            href="https://github.com/JSONPath-Plus/JSONPath#syntax-through-examples"
+            target="_blank"
+            rel="noreferrer"
+            className="text-morph-accent underline"
+          >
+            syntax &amp; examples
+          </a>
+          {" · "}
+          <a
+            href="https://jsonpath.com/"
+            target="_blank"
+            rel="noreferrer"
+            className="text-morph-accent underline"
+          >
+            online evaluator
+          </a>
+        </p>
+      </div>
       <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
         {tools.map((tool) => (
           <div
@@ -186,7 +217,7 @@ function ToolFieldsEditor({
               className="flex min-h-[60px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-xs font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
               value={drafts[tool.name]?.text ?? ""}
               onChange={(e) => setDraft(tool.name, { text: e.target.value })}
-              placeholder={"id\nname\ndata.items.title"}
+              placeholder={"$.id\n$.name\n$.data.items[*].title"}
             />
           </div>
         ))}
