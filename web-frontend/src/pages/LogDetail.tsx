@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "@tanstack/react-router";
 import { api } from "../lib/api";
+import { Accordion, type AccordionItem } from "../components/Accordion";
+import { CodeBlock } from "../components/CodeBlock";
+import { TypeBadge, unifiedType } from "../components/TypeBadge";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
@@ -27,7 +30,7 @@ function estimateTokens(s?: string): number {
 }
 
 function formatJson(s?: string): string {
-  if (!s) return "\u2014";
+  if (!s) return "—";
   try {
     return JSON.stringify(JSON.parse(s), null, 2);
   } catch {
@@ -65,6 +68,58 @@ export function LogDetail() {
   const savedTokens = jsonTokens - toonTokens;
   const savingsPct =
     jsonTokens > 0 ? ((savedTokens / jsonTokens) * 100).toFixed(1) : "0.0";
+  const type = unifiedType(data);
+
+  // Content sections as a single-open accordion, closed by default.
+  const contentItems: AccordionItem[] = [
+    {
+      id: "received",
+      header: (
+        <span className="text-sm font-semibold">
+          JSON recebido{" "}
+          <span className="font-normal text-morph-muted">(do backend)</span>
+        </span>
+      ),
+      body: (
+        <CodeBlock language={data.contentType ?? "json"}>
+          {formatJson(data.rawOutput)}
+        </CodeBlock>
+      ),
+    },
+  ];
+  if (selection) {
+    contentItems.push({
+      id: "mapped",
+      header: (
+        <span className="text-sm font-semibold">
+          Mapeado{" "}
+          <span className="font-normal text-morph-muted">
+            (após seleção de campos)
+          </span>
+        </span>
+      ),
+      body: <CodeBlock language="json">{formatJson(data.mappedOutput)}</CodeBlock>,
+    });
+  }
+  contentItems.push({
+    id: "output",
+    header: (
+      <span className="flex items-center gap-2 text-sm font-semibold">
+        Saída para o agente <TypeBadge type={type} />
+      </span>
+    ),
+    body: (
+      <>
+        {data.outputFormat !== "toon" && (
+          <p className="mb-2 text-sm text-morph-muted">
+            TOON não aplicado — o JSON foi mantido por ser menor ou por os dados
+            não serem tabulares.
+          </p>
+        )}
+        <CodeBlock language={type}>{data.outputText ?? "—"}</CodeBlock>
+      </>
+    ),
+  });
 
   return (
     <div className="space-y-6 p-6">
@@ -75,6 +130,7 @@ export function LogDetail() {
           </Button>
         </Link>
         <h1 className="text-2xl font-bold">Log #{data.id}</h1>
+        <TypeBadge type={type} />
       </div>
 
       <div className="grid grid-cols-2 gap-4 rounded-md border border-morph-border p-4">
@@ -94,27 +150,39 @@ export function LogDetail() {
           {new Date(data.createdAt).toLocaleString()}
         </div>
         <div>
-          <span className="text-morph-muted">Duration:</span>{" "}
-          {data.durationMs != null ? `${String(data.durationMs)}ms` : "\u2014"}
+          <span className="text-morph-muted">Duration (total):</span>{" "}
+          {data.durationMs != null ? `${String(data.durationMs)}ms` : "—"}
+        </div>
+        <div>
+          <span className="text-morph-muted">Overhead MORPH:</span>{" "}
+          {data.morphOverheadMs != null
+            ? `${String(data.morphOverheadMs)}ms`
+            : "—"}
         </div>
         <div>
           <span className="text-morph-muted">Tokens Saved:</span>{" "}
-          {data.tokensSaved ?? "\u2014"}
-        </div>
-        <div className="col-span-2">
-          <span className="text-morph-muted">Selected fields:</span>{" "}
-          {selection ? (
-            <>
-              <Badge variant="secondary">{selection.mode}</Badge>{" "}
-              <code className="font-mono text-xs">
-                {selection.fields.join(", ")}
-              </code>
-            </>
-          ) : (
-            "none"
-          )}
+          {data.tokensSaved ?? "—"}
         </div>
       </div>
+
+      {selection && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              Campos mapeados
+              <Badge variant="secondary">{selection.fields.length}</Badge>
+              <Badge variant="outline">{selection.mode}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc space-y-1 pl-5 font-mono text-xs">
+              {selection.fields.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <div>
         <h2 className="mb-2 text-lg font-semibold">Message</h2>
@@ -123,52 +191,9 @@ export function LogDetail() {
         </pre>
       </div>
 
-      <div className="space-y-4">
-        <div>
-          <h2 className="mb-2 text-lg font-semibold">
-            1. JSON recebido{" "}
-            <span className="text-sm font-normal text-morph-muted">
-              (do backend)
-            </span>
-          </h2>
-          <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-morph-bg-alt p-3 font-mono text-xs">
-            {formatJson(data.rawOutput)}
-          </pre>
-        </div>
-        {selection && (
-          <div>
-            <h2 className="mb-2 text-lg font-semibold">
-              2. Mapeado{" "}
-              <span className="text-sm font-normal text-morph-muted">
-                (após seleção de campos)
-              </span>
-            </h2>
-            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-morph-bg-alt p-3 font-mono text-xs">
-              {formatJson(data.mappedOutput)}
-            </pre>
-          </div>
-        )}
-        <div>
-          <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold">
-            {selection ? "3. " : "2. "}Saída para o agente{" "}
-            <Badge
-              variant={
-                data.outputFormat === "toon" ? "success" : "secondary"
-              }
-            >
-              {(data.outputFormat ?? "json").toUpperCase()}
-            </Badge>
-          </h2>
-          {data.outputFormat !== "toon" && (
-            <p className="mb-2 text-sm text-morph-muted">
-              TOON não aplicado — o JSON foi mantido por ser menor ou por
-              os dados não serem tabulares.
-            </p>
-          )}
-          <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-morph-bg-alt p-3 font-mono text-xs">
-            {data.outputText ?? "\u2014"}
-          </pre>
-        </div>
+      <div>
+        <h2 className="mb-2 text-lg font-semibold">Conteúdo</h2>
+        <Accordion items={contentItems} />
       </div>
 
       <div className="grid grid-cols-3 gap-4">

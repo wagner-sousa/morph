@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { type LogEntry } from "../lib/api";
 import { type WsMessage, useWebSocket } from "../lib/ws";
 import { Badge } from "./ui/badge";
+import { TypeBadge, unifiedType } from "./TypeBadge";
 import {
   Table,
   TableBody,
@@ -26,9 +27,6 @@ const levelVariant = (lvl: string) => {
       return "secondary" as const;
   }
 };
-
-const formatVariant = (fmt?: string) =>
-  fmt === "toon" ? ("success" as const) : ("secondary" as const);
 
 export function LogStream({ initial }: LogStreamProps) {
   const navigate = useNavigate();
@@ -54,7 +52,7 @@ export function LogStream({ initial }: LogStreamProps) {
             <TableHead>MCP</TableHead>
             <TableHead>Tool</TableHead>
             <TableHead>Level</TableHead>
-            <TableHead>Formato</TableHead>
+            <TableHead>Tipo</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Saved</TableHead>
           </TableRow>
@@ -80,9 +78,7 @@ export function LogStream({ initial }: LogStreamProps) {
                 <Badge variant={levelVariant(l.level)}>{l.level}</Badge>
               </TableCell>
               <TableCell>
-                <Badge variant={formatVariant(l.outputFormat)}>
-                  {(l.outputFormat ?? "json").toUpperCase()}
-                </Badge>
+                <TypeBadge type={unifiedType(l)} />
               </TableCell>
               <TableCell>
                 {l.durationMs != null ? `${String(l.durationMs)}ms` : "—"}
