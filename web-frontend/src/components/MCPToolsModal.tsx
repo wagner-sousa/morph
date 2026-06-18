@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { type FieldSelection, type MCPStatus, api } from "../lib/api";
 import { useUpdateMcp } from "../hooks/useMcps";
+import { cn } from "../lib/utils";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Select } from "./ui/select";
@@ -16,70 +17,107 @@ interface ToolInfo {
   inputSchema?: Record<string, unknown>;
 }
 
-interface ToolCardProps {
-  tool: ToolInfo;
+/**
+ * Accordion of tool cards where only one card is expanded at a time. The
+ * header (name + description + chevron) toggles the collapsible body rendered
+ * by `renderBody`.
+ */
+function ToolAccordion({
+  tools,
+  renderBody,
+}: {
+  tools: ToolInfo[];
+  renderBody: (tool: ToolInfo) => ReactNode;
+}) {
+  const [openName, setOpenName] = useState<string | null>(
+    tools[0]?.name ?? null,
+  );
+
+  // Keep a valid selection when the tool list changes (e.g. another MCP).
+  useEffect(() => {
+    setOpenName((cur) =>
+      cur && tools.some((t) => t.name === cur) ? cur : (tools[0]?.name ?? null),
+    );
+  }, [tools]);
+
+  return (
+    <div className="space-y-2">
+      {tools.map((tool) => {
+        const isOpen = openName === tool.name;
+        return (
+          <div
+            key={tool.name}
+            className="rounded-md border border-morph-border"
+          >
+            <button
+              type="button"
+              onClick={() => setOpenName(isOpen ? null : tool.name)}
+              aria-expanded={isOpen}
+              className="flex w-full items-center gap-2 p-3 text-left"
+            >
+              <ChevronRight
+                className={cn(
+                  "h-4 w-4 shrink-0 text-morph-muted transition-transform",
+                  isOpen && "rotate-90",
+                )}
+              />
+              <code className="text-sm font-semibold">{tool.name}</code>
+              {tool.description && (
+                <span className="text-xs text-morph-muted truncate">
+                  {tool.description}
+                </span>
+              )}
+            </button>
+            {isOpen && <div className="px-3 pb-3">{renderBody(tool)}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
-function ToolCardToon({ tool }: ToolCardProps) {
+function ToolToonBody({ tool }: { tool: ToolInfo }) {
   const schema = tool.inputSchema;
   const props = schema?.properties as
     | Record<string, { type?: string; description?: string }>
     | undefined;
   const required = (schema?.required as string[] | undefined) ?? [];
 
+  if (!props || Object.keys(props).length === 0) {
+    return <p className="text-xs text-morph-muted">No parameters.</p>;
+  }
   return (
-    <div className="rounded-md border border-morph-border p-3 space-y-2">
-      <div className="flex items-center gap-2">
-        <code className="text-sm font-semibold">{tool.name}</code>
-        {tool.description && (
-          <span className="text-xs text-morph-muted truncate">
-            {tool.description}
-          </span>
-        )}
-      </div>
-      {props && Object.keys(props).length > 0 && (
-        <div className="space-y-1 text-xs font-mono">
-          {Object.entries(props).map(([key, val]) => (
-            <div key={key} className="flex gap-2">
-              <span className="text-morph-accent">{key}</span>
-              <span className="text-morph-muted">{val.type ?? "any"}</span>
-              {required.includes(key) && (
-                <Badge variant="secondary" className="text-[10px] px-1 py-0">
-                  required
-                </Badge>
-              )}
-              {val.description && (
-                <span className="text-morph-muted truncate">
-                  {val.description}
-                </span>
-              )}
-            </div>
-          ))}
+    <div className="space-y-1 text-xs font-mono">
+      {Object.entries(props).map(([key, val]) => (
+        <div key={key} className="flex gap-2">
+          <span className="text-morph-accent">{key}</span>
+          <span className="text-morph-muted">{val.type ?? "any"}</span>
+          {required.includes(key) && (
+            <Badge variant="secondary" className="text-[10px] px-1 py-0">
+              required
+            </Badge>
+          )}
+          {val.description && (
+            <span className="text-morph-muted truncate">{val.description}</span>
+          )}
         </div>
-      )}
+      ))}
     </div>
   );
 }
 
-function ToolCardJson({ tool }: ToolCardProps) {
+function ToolJsonBody({ tool }: { tool: ToolInfo }) {
+  if (!tool.inputSchema || Object.keys(tool.inputSchema).length === 0) {
+    return <p className="text-xs text-morph-muted">No input schema.</p>;
+  }
   return (
-    <div className="rounded-md border border-morph-border p-3 space-y-2">
-      <div className="flex items-center gap-2">
-        <code className="text-sm font-semibold">{tool.name}</code>
-        {tool.description && (
-          <span className="text-xs text-morph-muted">{tool.description}</span>
-        )}
-      </div>
-      {tool.inputSchema && Object.keys(tool.inputSchema).length > 0 && (
-        <pre className="max-h-60 overflow-auto whitespace-pre-wrap break-all rounded bg-morph-bg p-2 text-xs">
-          {JSON.stringify(tool.inputSchema, null, 2)}
-        </pre>
-      )}
-    </div>
+    <pre className="max-h-60 overflow-auto whitespace-pre-wrap break-all rounded bg-morph-bg p-2 text-xs">
+      {JSON.stringify(tool.inputSchema, null, 2)}
+    </pre>
   );
 }
 
-/** Local editor state per tool: projection mode + one field path per line. */
+/** Local editor state per tool: projection mode + one JSONPath expression per line. */
 interface FieldDraft {
   mode: "include" | "exclude";
   text: string;
@@ -161,9 +199,8 @@ function ToolFieldsEditor({
           >
             JSONPath
           </a>{" "}
-          expressions for nested/array paths (e.g.{" "}
-          <code>$.tasks[*].id</code>). One expression per line. Empty = no
-          projection.
+          expressions for nested/array paths (e.g. <code>$.tasks[*].id</code>).
+          One expression per line. Empty = no projection.
         </p>
         <p>
           Help:{" "}
@@ -186,21 +223,13 @@ function ToolFieldsEditor({
           </a>
         </p>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
-        {tools.map((tool) => (
-          <div
-            key={tool.name}
-            className="rounded-md border border-morph-border p-3 space-y-2"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 space-y-0.5">
-                <code className="text-sm font-semibold">{tool.name}</code>
-                {tool.description && (
-                  <p className="text-xs text-morph-muted">{tool.description}</p>
-                )}
-              </div>
+      <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+        <ToolAccordion
+          tools={tools}
+          renderBody={(tool) => (
+            <div className="space-y-2">
               <Select
-                className="w-32 shrink-0"
+                className="w-32"
                 value={drafts[tool.name]?.mode ?? "include"}
                 onChange={(e) =>
                   setDraft(tool.name, {
@@ -212,15 +241,15 @@ function ToolFieldsEditor({
                   { value: "exclude", label: "Exclude" },
                 ]}
               />
+              <textarea
+                className="flex min-h-[60px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-xs font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
+                value={drafts[tool.name]?.text ?? ""}
+                onChange={(e) => setDraft(tool.name, { text: e.target.value })}
+                placeholder={"$.id\n$.name\n$.data.items[*].title"}
+              />
             </div>
-            <textarea
-              className="flex min-h-[60px] w-full rounded-md border border-morph-border bg-morph-bg px-3 py-2 text-xs font-mono text-morph-text shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-morph-accent"
-              value={drafts[tool.name]?.text ?? ""}
-              onChange={(e) => setDraft(tool.name, { text: e.target.value })}
-              placeholder={"$.id\n$.name\n$.data.items[*].title"}
-            />
-          </div>
-        ))}
+          )}
+        />
       </div>
       <div className="border-t border-morph-border pt-3 mt-3">
         <Button onClick={() => void handleSave()} disabled={updateMcp.isPending}>
@@ -267,19 +296,21 @@ export function MCPToolsModal({
             </TabsList>
             <TabsContent
               value="toon"
-              className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1"
+              className="flex-1 min-h-0 overflow-y-auto pr-1"
             >
-              {tools.map((tool) => (
-                <ToolCardToon key={tool.name} tool={tool} />
-              ))}
+              <ToolAccordion
+                tools={tools}
+                renderBody={(tool) => <ToolToonBody tool={tool} />}
+              />
             </TabsContent>
             <TabsContent
               value="json"
-              className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1"
+              className="flex-1 min-h-0 overflow-y-auto pr-1"
             >
-              {tools.map((tool) => (
-                <ToolCardJson key={tool.name} tool={tool} />
-              ))}
+              <ToolAccordion
+                tools={tools}
+                renderBody={(tool) => <ToolJsonBody tool={tool} />}
+              />
             </TabsContent>
             <TabsContent
               value="fields"
