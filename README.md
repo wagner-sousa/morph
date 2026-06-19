@@ -26,7 +26,36 @@ graph LR
 - **Real-time** — WebSocket for live logs, health, and metrics
 - **SQLite persistence** — Call history, token savings, time-series stats
 - **Docker-native** — Volume-based config, transport selection via `MORPH_TRANSPORT`
-- **124+ tests** — Unit, integration, and connection tests
+- **270 tests** — Unit, integration, and connection tests
+
+## Project methodology (Spec-Driven Development)
+
+MORPH is built with **Specification-Driven Development (SDD)** on two layers:
+
+- **SDD-Zod loop** — the configuration contract is the zod schema in
+  [`src/config/schema.ts`](src/config/schema.ts) (the single source of truth); TypeScript
+  types are inferred from it and the editor-facing JSON Schemas are **generated**
+  (`npm run gen:schema`, never hand-edited). Code flows contract → failing test →
+  implementation, and every source file is tagged `SPEC:` (contracts) or `IMPL:`
+  (implementations).
+- **GitHub Spec Kit** (governance) — each feature gets a versioned specification before
+  code. Project principles live in
+  [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and every plan must
+  pass a Constitution Check gate. Specs live under [`specs/`](specs/) (`NNN-feature/` with
+  `spec.md` / `plan.md` / `tasks.md`, plus `data-model.md` when config is involved). Drive a
+  new feature with:
+
+  ```text
+  /speckit-constitution → /speckit-specify → /speckit-plan → /speckit-tasks → /speckit-implement
+  ```
+
+  The Spec Kit sits *above* the zod contract — the spec describes the feature; the zod schema
+  remains the executable contract it references. The v2.0 features are documented
+  retroactively under [`specs/`](specs/) (`001`–`010`).
+
+See [AGENTS.md](AGENTS.md) and the
+[Development Guide](https://wagner-sousa.github.io/morph/03-development/000_development/) for
+the full workflow.
 
 ## Quick Start (Docker)
 
